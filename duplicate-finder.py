@@ -4,6 +4,37 @@ import os
 import hashlib
 
 
+def process_duplicates(files=[]):
+    """
+    :param files: [[original_file, duplicate1, duplicate2, ...], ...]
+    :return:
+    """
+    # todo: need to do something with the duplicates, either dump a json, or start deleting them
+    pass
+
+
+def find_duplicates(files=[]):
+    """
+    :param files: [{path:str,size:int,checksum:str}, ...]
+    :return: [[original_file, duplicate1, duplicate2, ...], ...]
+    """
+    all_duplicates = []
+    files.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
+    # todo: once the files are sorted based on size, loop similar sized files and if they match create a new
+    #  list of files containing duplicates
+    for i in range(len(files) - 1):
+        duplicates_for_file = [files[i]]  # consider the 0 index of each list as the original file
+        for j in range(i + 1, len(files)):
+            # print("{} - {}".format(i,j))
+            if files[i]["size"] == files[j]["size"] and files[i]["checksum"] == files[j]["checksum"]:
+                # todo: ideally reference the oldest file and build a list of duplicate paths for that one
+                duplicates_for_file.append(files[j])
+        if len(duplicates_for_file) > 1:
+            all_duplicates.append(duplicates_for_file)  # based on previous comment, only if a list of duplicates
+            #  contains more than 1 element, then there are duplicates
+    return all_duplicates
+
+
 def collect_files_in_path(path=""):
     files = []
     for file in glob.glob(path + "/*"):
@@ -15,13 +46,6 @@ def collect_files_in_path(path=""):
                           'checksum': hashlib.md5(open(file, 'rb').read()).digest()
                           })
     return files
-
-
-def process_all_files(files):
-    duplicates = []
-    files.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
-    # todo: once the files are sorted based on size, loop similar sized files and if they match create a new list of files containing duplicates
-    return duplicates
 
 
 def collect_all_files(paths=[]):
@@ -45,5 +69,6 @@ def show_menu():
 if __name__ == "__main__":
     args = show_menu()
     files = collect_all_files(args.paths)
-    duplicates = process_all_files(files)
+    duplicates = find_duplicates(files)
+    process_duplicates(duplicates)
     pass  # used for debug breakpoint
