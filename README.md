@@ -5,7 +5,7 @@ So I thought about this tool that would help me find out which files are duplica
 # Usage
 > duplicate-finder.py [path1] [path2] ... -j -e -n
 
-* `-j` - dump a file containing a json with list of sequences of duplicates, where the first element in each list is the original file found, and all successive ones are duplicates
+* `-j` - dump a file containing a json with list of sequences of duplicates, where the first element in each sequence is the original file found, and all successive ones are duplicates, format `[[original_file, duplicate1, dulicate2, ...], ...]`
 * `-e` - flag indicating that duplicate files should be erased
 * `-n` - flag indicating that python should search hidden folders and files including files and folders starting with `.`
 
