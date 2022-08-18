@@ -4,9 +4,11 @@ import os
 
 
 def process_files_in_path(path=""):
-    for file in glob.glob(path+"/*"):
+    for file in glob.glob(path + "/*"):
         if os.path.isfile(file):
             print(file)
+            # todo: need to build up a hash map with name, path, size, checksum
+            # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
 
 
 def iterate_paths(paths=[]):
@@ -28,4 +30,4 @@ def show_menu():
 if __name__ == "__main__":
     args = show_menu()
     iterate_paths(args.paths)
-    pass # used for debug breakpoint
+    pass  # used for debug breakpoint
