@@ -3,10 +3,9 @@ import glob
 import os
 import hashlib
 
-files = []
 
-
-def process_files_in_path(path=""):
+def collect_files_in_path(path=""):
+    files = []
     for file in glob.glob(path + "/*"):
         if os.path.isfile(file):
             # print(file)
@@ -15,12 +14,21 @@ def process_files_in_path(path=""):
                           'size': os.path.getsize(file),
                           'checksum': hashlib.md5(open(file, 'rb').read()).digest()
                           })
-    files.sort(key=lambda x: x["size"])
+    return files
 
 
-def iterate_paths(paths=[]):
+def process_all_files(files):
+    duplicates = []
+    files.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
+    # todo: once the files are sorted based on size, loop similar sized files and if they match create a new list of files containing duplicates
+    return duplicates
+
+
+def collect_all_files(paths=[]):
+    files = []
     for path in paths:
-        process_files_in_path(path)
+        files += collect_files_in_path(path)
+    return files
 
 
 def show_menu():
@@ -36,5 +44,6 @@ def show_menu():
 
 if __name__ == "__main__":
     args = show_menu()
-    iterate_paths(args.paths)
+    files = collect_all_files(args.paths)
+    duplicates = process_all_files(files)
     pass  # used for debug breakpoint
