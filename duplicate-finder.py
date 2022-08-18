@@ -1,14 +1,21 @@
 import argparse
 import glob
 import os
+import hashlib
+
+files = []
 
 
 def process_files_in_path(path=""):
     for file in glob.glob(path + "/*"):
         if os.path.isfile(file):
-            print(file)
-            # todo: need to build up a hash map with name, path, size, checksum
+            # print(file)
             # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
+            files.append({'path': file,
+                          'size': os.path.getsize(file),
+                          'checksum': hashlib.md5(open(file, 'rb').read()).digest()
+                          })
+    files.sort(key=lambda x: x["size"])
 
 
 def iterate_paths(paths=[]):
