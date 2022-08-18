@@ -2,6 +2,23 @@ import argparse
 import glob
 import os
 import hashlib
+import datetime
+import json
+
+datetime_format = "%Y-%m-%d_%H-%M-%S"
+encoding = "utf-16"
+
+def dump_duplicates(files=[]):
+    """
+    help: [ https://appdividend.com/2022/06/02/how-to-convert-python-list-to-json/ ] - dumping objects to json
+    :param files: [[original_file, duplicate1, duplicate2, ...], ...]
+    :return:
+    """
+    with open("{}_{}".format(datetime.datetime.now().strftime(datetime_format),
+                             ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json"),
+              "w",
+              encoding=encoding) as dumpfile:
+        dumpfile.write(json.dumps(files, indent=4))
 
 
 def delete_duplicates(files=[]):
@@ -12,7 +29,7 @@ def delete_duplicates(files=[]):
     for series in files:
         for i in range(1, len(series)):
             print("deleting [{}]".format(series[i]["path"]))
-            os.remove(series[i]["path"])
+            os.remove(series[i]["path"])  # todo: this will remove the oldest files first, need to figure out fix
 
 
 def find_duplicates(files=[]):
@@ -38,15 +55,22 @@ def find_duplicates(files=[]):
 
 
 def collect_files_in_path(path=""):
+    """
+    help: [ https://stackoverflow.com/questions/237079/how-do-i-get-file-creation-and-modification-date-times ] - use the proper time flag
+    :param path:
+    :return:
+    """
     files = []
-    for file in glob.glob(path + "/*"):
+    for file in glob.glob(path + "/*"): # todo: fix, this line to get recursively into paths
         if os.path.isfile(file):
             # print(file)
             # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
-            files.append({'path': file,
-                          'size': os.path.getsize(file),
-                          'checksum': hashlib.md5(open(file, 'rb').read()).digest()
-                          })
+            item = {'path': file,
+                    'size': os.path.getsize(file),
+                    'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(datetime_format),
+                    'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(encoding)
+                    }
+            files.append(item)
     return files
 
 
@@ -61,9 +85,12 @@ def show_menu():
     parser = argparse.ArgumentParser(
         description='Find duplicate files in given paths based on file size and checksum validating content is '
                     'similar - chance of different files with same size and checksum should be close to 0')
+    parser.add_argument('-j', '--json', action='store_true',
+                        help='flag indicating that a json containing duplicate file paths will be generated')
+    parser.add_argument('-e', '--erase', action='store_true',
+                        help='flag indicating that duplicate files will be erased')
     parser.add_argument('paths', metavar='paths', nargs='+', help='paths where to search through - list of strings '
                                                                   'separated by space')
-
     arguments = parser.parse_args()
     return arguments
 
@@ -72,6 +99,10 @@ if __name__ == "__main__":
     args = show_menu()
     files = collect_all_files(args.paths)
     duplicates = find_duplicates(files)
-    # todo: need to do something with the duplicates, either dump a json, or start deleting them
-    delete_duplicates(duplicates)
+
+    if args.json:
+        dump_duplicates(duplicates)
+    if args.erase:
+        delete_duplicates(duplicates)
+
     pass  # used for debug breakpoint
