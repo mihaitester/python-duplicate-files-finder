@@ -4,13 +4,15 @@ import os
 import hashlib
 
 
-def process_duplicates(files=[]):
+def delete_duplicates(files=[]):
     """
     :param files: [[original_file, duplicate1, duplicate2, ...], ...]
     :return:
     """
-    # todo: need to do something with the duplicates, either dump a json, or start deleting them
-    pass
+    for series in files:
+        for i in range(1, len(series)):
+            print("deleting [{}]".format(series[i]["path"]))
+            os.remove(series[i]["path"])
 
 
 def find_duplicates(files=[]):
@@ -70,5 +72,6 @@ if __name__ == "__main__":
     args = show_menu()
     files = collect_all_files(args.paths)
     duplicates = find_duplicates(files)
-    process_duplicates(duplicates)
+    # todo: need to do something with the duplicates, either dump a json, or start deleting them
+    delete_duplicates(duplicates)
     pass  # used for debug breakpoint
