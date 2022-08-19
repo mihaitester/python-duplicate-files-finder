@@ -5,6 +5,7 @@ import hashlib
 import datetime
 import json
 import pathlib
+import subprocess
 
 datetime_format = "%Y-%m-%d_%H-%M-%S"
 encoding = "ISO-8859-1"  # help: [ https://www.codegrepper.com/code-examples/python/UnicodeDecodeError%3A+%27utf-16-le%27+codec+can%27t+decode+bytes+in+position+60-61%3A+illegal+UTF-16+surrogate ]
@@ -21,6 +22,18 @@ def dump_duplicates(files=[]):
               "w",
               encoding=encoding) as dumpfile:
         dumpfile.write(json.dumps(files, indent=4))
+
+def link_back_duplicates(files=[]):
+    """
+    help: [ https://stackoverflow.com/questions/1447575/symlinks-on-windows ]
+    help: [ https://pypi.org/project/pywin32/ ]
+    :param files: [[original_file, duplicate1, duplicate2, ...], ...]
+    :return:
+    """
+    for series in files:
+        for i in range(1, len(series)):
+            os.link('{}'.format(series[0]["path"]), '{}.lnk'.format(series[i]["path"]))
+            # subprocess.call(['mklink', '"{}.lnk"'.format(series[i]["path"]), '"{}"'.format(series[0]["path"])], shell=True) # note: does not have sufficient priviledges
 
 
 def delete_duplicates(files=[]):
@@ -94,6 +107,8 @@ def show_menu():
                     'similar - chance of different files with same size and checksum should be close to 0')
     parser.add_argument('-j', '--json', action='store_true', required=False,
                         help='flag indicating that a json containing duplicate file paths will be generated')
+    parser.add_argument('-l', '--links', action='store_true', required=False,
+                        help='flag indicating that a symbolic links should be created from duplicate to original file')
     parser.add_argument('-e', '--erase', action='store_true', required=False,
                         help='flag indicating that duplicate files will be erased')
     parser.add_argument('-n', '--hidden', action='store_true', required=False,
@@ -112,6 +127,8 @@ if __name__ == "__main__":
 
     if args.json:
         dump_duplicates(duplicates)
+    if args.links:
+        link_back_duplicates(duplicates)
     if args.erase:
         delete_duplicates(duplicates)
 
