@@ -122,8 +122,8 @@ def show_menu():
 if __name__ == "__main__":
     args = show_menu()
 
-    files = collect_all_files(args.paths, args.hidden)
-    duplicates = find_duplicates(files)
+    files = collect_all_files(args.paths, args.hidden) # todo: add some timeit wrappers around these calls which can take a while for large systems
+    duplicates = find_duplicates(files) # todo: figure out how to do in place changes, instead of storing all files metadata for processing
 
     if args.json:
         dump_duplicates(duplicates)
