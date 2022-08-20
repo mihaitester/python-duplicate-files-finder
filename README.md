@@ -17,19 +17,93 @@ For example processing `15K` files which take up `212GB` HDD takes roughly `40 m
 # Prerequisites
 Currently tested manually script on `Windows 10`, and with `Python 3.10.6`.
 
-# Example logged info
+# Example runs of script
 ```commandline
 python duplicate-finder.py c:\users\notarealuser\downloads -j -c
 
 Collecting metrics for path [c:\users\notarealuser\downloads]
 Path [c:\users\notarealuser\downloads] contains [0] folders and [3] items, totaling [0.00TB 0.00GB 3.69MB 708.56KB 572.00B]
 Collected metrics in [0.00] seconds
+Collecting metrics for path [d:\]
+Path [d:\] contains [2529] folders and [15280] items, totaling [0.21TB 212.87GB 887.36MB 365.27KB 277.00B]
+Collected metrics in [4.93] seconds
 Collecting files in path [c:\users\notarealuser\downloads] which contains [3] files totaling [0.00TB 0.00GB 3.69MB 708.56KB 572.00B]
+Processed [3/3] files in [0days 00:00:00] ETA:[0days 00:00:00] based on [50.00%] data processed generating [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] metadata
 Processed [3/3] uncached files in [0days 00:00:00] generating [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] metadata
 Collected files in [0days 00:00:00] and built up [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] of metadata
+Collecting files in path [d:\] which contains [15280] files totaling [0.21TB 212.87GB 887.36MB 365.27KB 277.00B]
+Processed [17/15280] files in [0days 00:00:00] ETA:[6733days 12:30:27] based on [0.00%] data processed generating [0.00TB 0.00GB 0.00MB 0.05KB 56.00B] metadata
+Processed [2019/15280] files in [0days 00:01:06] ETA:[0days 00:45:19] based on [2.38%] data processed generating [0.00TB 0.00GB 0.00MB 2.15KB 152.00B] metadata
+Processed [2234/15280] files in [0days 00:02:00] ETA:[0days 00:45:17] based on [4.23%] data processed generating [0.00TB 0.00GB 0.00MB 3.62KB 632.00B] metadata
+Processed [2713/15280] files in [0days 00:03:01] ETA:[0days 00:45:03] based on [6.29%] data processed generating [0.00TB 0.00GB 0.01MB 7.65KB 664.00B] metadata
+Processed [3066/15280] files in [0days 00:04:00] ETA:[0days 00:40:48] based on [8.95%] data processed generating [0.00TB 0.00GB 0.01MB 8.65KB 664.00B] metadata
+Processed [3461/15280] files in [0days 00:05:00] ETA:[0days 00:38:08] based on [11.62%] data processed generating [0.00TB 0.00GB 0.01MB 9.77KB 792.00B] metadata
+Processed [3643/15280] files in [0days 00:06:00] ETA:[0days 00:36:48] based on [14.02%] data processed generating [0.00TB 0.00GB 0.01MB 11.02KB 24.00B] metadata
+Processed [4460/15280] files in [0days 00:07:00] ETA:[0days 00:35:20] based on [16.56%] data processed generating [0.00TB 0.00GB 0.01MB 12.43KB 440.00B] metadata
+Processed [5089/15280] files in [0days 00:08:01] ETA:[0days 00:33:47] based on [19.19%] data processed generating [0.00TB 0.00GB 0.01MB 12.43KB 440.00B] metadata
+Processed [5398/15280] files in [0days 00:09:01] ETA:[0days 00:32:21] based on [21.82%] data processed generating [0.00TB 0.00GB 0.01MB 14.02KB 24.00B] metadata
+Processed [7003/15280] files in [0days 00:10:00] ETA:[0days 00:30:57] based on [24.42%] data processed generating [0.00TB 0.00GB 0.02MB 20.05KB 56.00B] metadata
+Processed [7370/15280] files in [0days 00:11:00] ETA:[0days 00:29:35] based on [27.12%] data processed generating [0.00TB 0.00GB 0.02MB 22.59KB 600.00B] metadata
+Processed [7648/15280] files in [0days 00:12:00] ETA:[0days 00:28:19] based on [29.76%] data processed generating [0.00TB 0.00GB 0.02MB 22.59KB 600.00B] metadata
+Processed [8113/15280] files in [0days 00:13:04] ETA:[0days 00:27:08] based on [32.50%] data processed generating [0.00TB 0.00GB 0.02MB 25.43KB 440.00B] metadata
+Processed [8260/15280] files in [0days 00:14:00] ETA:[0days 00:26:09] based on [34.87%] data processed generating [0.00TB 0.00GB 0.03MB 28.65KB 664.00B] metadata
+Processed [8558/15280] files in [0days 00:15:01] ETA:[0days 00:25:01] based on [37.52%] data processed generating [0.00TB 0.00GB 0.03MB 28.65KB 664.00B] metadata
+Processed [8977/15280] files in [0days 00:16:01] ETA:[0days 00:23:50] based on [40.19%] data processed generating [0.00TB 0.00GB 0.03MB 28.65KB 664.00B] metadata
+Processed [9176/15280] files in [0days 00:17:06] ETA:[0days 00:22:34] based on [43.11%] data processed generating [0.00TB 0.00GB 0.03MB 32.27KB 280.00B] metadata
+Processed [9319/15280] files in [0days 00:18:00] ETA:[0days 00:21:34] based on [45.50%] data processed generating [0.00TB 0.00GB 0.03MB 32.27KB 280.00B] metadata
+Processed [9479/15280] files in [0days 00:19:02] ETA:[0days 00:20:36] based on [48.02%] data processed generating [0.00TB 0.00GB 0.03MB 32.27KB 280.00B] metadata
+Processed [10044/15280] files in [0days 00:20:00] ETA:[0days 00:19:35] based on [50.53%] data processed generating [0.00TB 0.00GB 0.03MB 32.27KB 280.00B] metadata
+Processed [10365/15280] files in [0days 00:21:01] ETA:[0days 00:18:26] based on [53.28%] data processed generating [0.00TB 0.00GB 0.04MB 36.34KB 344.00B] metadata
+Processed [10848/15280] files in [0days 00:22:03] ETA:[0days 00:17:20] based on [55.99%] data processed generating [0.00TB 0.00GB 0.04MB 36.34KB 344.00B] metadata
+Processed [11153/15280] files in [0days 00:23:04] ETA:[0days 00:16:13] based on [58.72%] data processed generating [0.00TB 0.00GB 0.04MB 36.34KB 344.00B] metadata
+Processed [11560/15280] files in [0days 00:24:00] ETA:[0days 00:15:10] based on [61.27%] data processed generating [0.00TB 0.00GB 0.04MB 36.34KB 344.00B] metadata
+Processed [11791/15280] files in [0days 00:25:08] ETA:[0days 00:14:01] based on [64.18%] data processed generating [0.00TB 0.00GB 0.04MB 40.90KB 920.00B] metadata
+Processed [12084/15280] files in [0days 00:26:19] ETA:[0days 00:12:46] based on [67.34%] data processed generating [0.00TB 0.00GB 0.04MB 40.90KB 920.00B] metadata
+Processed [12401/15280] files in [0days 00:27:00] ETA:[0days 00:12:03] based on [69.14%] data processed generating [0.00TB 0.00GB 0.04MB 40.90KB 920.00B] metadata
+Processed [12879/15280] files in [0days 00:28:00] ETA:[0days 00:11:01] based on [71.76%] data processed generating [0.00TB 0.00GB 0.04MB 40.90KB 920.00B] metadata
+Processed [13159/15280] files in [0days 00:29:00] ETA:[0days 00:10:12] based on [73.97%] data processed generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Processed [13247/15280] files in [0days 00:30:00] ETA:[0days 00:09:14] based on [76.46%] data processed generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Processed [13772/15280] files in [0days 00:31:02] ETA:[0days 00:08:09] based on [79.18%] data processed generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Processed [13961/15280] files in [0days 00:32:01] ETA:[0days 00:07:08] based on [81.76%] data processed generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Processed [14014/15280] files in [0days 00:33:00] ETA:[0days 00:06:05] based on [84.44%] data processed generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Processed [14359/15280] files in [0days 00:34:00] ETA:[0days 00:05:03] based on [87.06%] data processed generating [0.00TB 0.00GB 0.05MB 51.84KB 856.00B] metadata
+Processed [14825/15280] files in [0days 00:35:00] ETA:[0days 00:04:01] based on [89.69%] data processed generating [0.00TB 0.00GB 0.05MB 51.84KB 856.00B] metadata
+Processed [15685/15280] files in [0days 00:36:00] ETA:[0days 00:03:05] based on [92.07%] data processed generating [0.00TB 0.00GB 0.05MB 51.84KB 856.00B] metadata
+Processed [16155/15280] files in [0days 00:37:00] ETA:[0days 00:02:08] based on [94.55%] data processed generating [0.00TB 0.00GB 0.06MB 58.34KB 344.00B] metadata
+Processed [17083/15280] files in [0days 00:38:01] ETA:[0days 00:01:09] based on [97.04%] data processed generating [0.00TB 0.00GB 0.06MB 65.65KB 664.00B] metadata
+Processed [17343/15280] files in [0days 00:39:00] ETA:[0days 00:00:19] based on [99.19%] data processed generating [0.00TB 0.00GB 0.06MB 65.65KB 664.00B] metadata
+Processed [17415/15280] uncached files in [0days 00:39:18] generating [0.00TB 0.00GB 0.06MB 65.65KB 664.00B] metadata
+Collected files in [0days 00:39:19] and built up [0.00TB 0.00GB 0.06MB 65.65KB 664.00B] of metadata
 >>> func:[dump_cache] took: [0days 00:00:00]
 Started searching for duplicates
-Found [1] duplicated files having [1] duplicates and occupying [0.00TB 0.00GB 1.85MB 866.14KB 145.00B] out of [0.00TB 0.00GB 3.69MB 708.56KB 572.00B] in [0days 00:00:00] generating [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] metadata
->>> func:[find_duplicates] took: [0days 00:00:00]
+Found [639] duplicated files having [1083] duplicates and occupying [0.00TB 0.00GB 0.00MB 0.01KB 10.00B] out of [0.21TB 212.87GB 890.83MB 847.43KB 441.00B] in [0days 00:00:13] generating [0.00TB 0.00GB 0.01MB 5.30KB 312.00B] metadata
+>>> func:[find_duplicates] took: [0days 00:00:13]
+>>> func:[dump_duplicates] took: [0days 00:00:00]
+
+Process finished with exit code 0
+```
+
+```commandline
+c:\users\notarealuser\downloads d:\ -j -c -k 2022-08-20_21-24-22_duplicate-finder.cache
+
+Loaded [7800] cached files totaling [0.00TB 0.00GB 0.06MB 65.65KB 664.00B] metadata
+>>> func:[load_cache] took: [0days 00:00:00]
+Collecting metrics for path [c:\users\notarealuser\downloads]
+Path [c:\users\notarealuser\downloads] contains [0] folders and [3] items, totaling [0.00TB 0.00GB 3.69MB 708.56KB 572.00B]
+Collected metrics in [0.00] seconds
+Collecting metrics for path [d:\]
+Path [d:\] contains [2529] folders and [15282] items, totaling [0.21TB 212.87GB 890.67MB 688.04KB 41.00B]
+Collected metrics in [4.94] seconds
+Collecting files in path [c:\users\notarealuser\downloads] which contains [3] files totaling [0.00TB 0.00GB 3.69MB 708.56KB 572.00B]
+Processed [0/3] uncached files in [0days 00:00:00] generating [0.00TB 0.00GB 0.00MB 0.05KB 56.00B] metadata
+Collected files in [0days 00:00:00] and built up [0.00TB 0.00GB 0.00MB 0.05KB 56.00B] of metadata
+Collecting files in path [d:\] which contains [15282] files totaling [0.21TB 212.87GB 890.67MB 688.04KB 41.00B]
+Processed [159/15282] files in [0days 00:00:00] ETA:[25693days 20:34:49] based on [0.00%] data processed generating [0.00TB 0.00GB 0.00MB 0.05KB 56.00B] metadata
+Processed [9620/15282] uncached files in [0days 00:00:06] generating [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] metadata
+Collected files in [0days 00:00:07] and built up [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] of metadata
+>>> func:[dump_cache] took: [0days 00:00:00]
+Started searching for duplicates
+Found [639] duplicated files having [1083] duplicates and occupying [0.00TB 0.00GB 0.00MB 0.01KB 10.00B] out of [0.21TB 212.87GB 894.14MB 138.55KB 565.00B] in [0days 00:00:08] generating [0.00TB 0.00GB 0.01MB 5.30KB 312.00B] metadata
+>>> func:[find_duplicates] took: [0days 00:00:08]
 >>> func:[dump_duplicates] took: [0days 00:00:00]
 ```
