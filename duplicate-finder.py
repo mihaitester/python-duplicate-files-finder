@@ -138,7 +138,7 @@ def collect_metrics_in_path(path="", hidden=False):
             # print(p)
             if os.path.isfile(p):
                 size += os.path.getsize(p)
-    return [{'path': path, 'files': files, 'folders': folders, 'size': size}]
+    return {'path': path, 'files': files, 'folders': folders, 'size': size}
 
 
 def collect_all_metrics(paths=[], hidden=False):
@@ -146,7 +146,7 @@ def collect_all_metrics(paths=[], hidden=False):
     for path in paths:
         start_time = time.time()
         print("Collecting metrics for path [{}]".format(path))
-        metrics += collect_metrics_in_path(path, hidden)
+        metrics.append(collect_metrics_in_path(path, hidden))
         print("Collected metrics in [%.2f] seconds" % (time.time() - start_time))
     return metrics
 
