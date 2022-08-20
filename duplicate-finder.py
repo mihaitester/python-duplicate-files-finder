@@ -6,6 +6,7 @@ import datetime
 import json
 import pathlib
 import subprocess
+import sys
 import time
 
 datetime_format = "%Y-%m-%d_%H-%M-%S"
@@ -96,10 +97,15 @@ def collect_files_in_path(path="", hidden=False):
     return files
 
 
-def collect_all_files(paths=[], hidden=False):
+def collect_all_files(paths=[], hidden=False, metrics=[]):
     files = []
     for path in paths:
-        files += collect_files_in_path(path, hidden)
+        start_time = time.time()
+        metric = [ x for x in metrics if x["path"] == path][0]
+        print("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
+        meta = collect_files_in_path(path, hidden) # todo: make some estimation of time its going to take
+        print("Collected files in [%.2f] seconds and built up [%s] of metadata" % (time.time() - start_time, print_size(sys.getsizeof(meta))))
+        files += meta
     return files
 
 
@@ -113,7 +119,6 @@ def collect_metrics_in_path(path="", hidden=False):
     files = 0
     folders = 0
     size = 0
-    # todo: fix this and recursively iterate subfolders
     for root, dirs, items in os.walk(path):
         files += len(items)
         folders += len(dirs)
@@ -135,6 +140,17 @@ def collect_all_metrics(paths=[], hidden=False):
     return metrics
 
 
+def print_time(time):
+    seconds = time % 60
+    time /= 60
+    minutes = time % 60
+    time /= 60
+    hours = time % 24
+    time /= 24
+    days = time
+    return "%ddays %dhours %dminutes %dseconds" % (days, hours, minutes, seconds)
+
+
 def print_size(size):
     bytes = size % 1024
     size /= 1024
@@ -147,7 +163,8 @@ def print_size(size):
     tbytes = size
     return "%.2fTB %.2fGB %.2fMB %.2fKB %.2fB" % (tbytes,gbytes,mbytes,kbytes,bytes)
 
-def print_all_metrics(metrics):
+
+def print_all_metrics(metrics=[]):
     for metric in metrics:
         print("Path [{}] contains [{}] folders and [{}] items, totaling [{}]".format(metric["path"], metric["folders"], metric["files"], print_size(metric["size"])))
 
@@ -176,7 +193,7 @@ if __name__ == "__main__":
     metrics = collect_all_metrics(args.paths, args.hidden)
     print_all_metrics(metrics)
 
-    files = collect_all_files(args.paths, args.hidden)  # todo: add some timeit wrappers around these calls which can take a while for large systems
+    files = collect_all_files(args.paths, args.hidden, metrics)  # todo: add some timeit wrappers around these calls which can take a while for large systems
     duplicates = find_duplicates(files)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
 
     if args.json:
