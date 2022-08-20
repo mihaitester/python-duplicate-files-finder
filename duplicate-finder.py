@@ -71,7 +71,7 @@ def find_duplicates(files=[]):
     return all_duplicates
 
 
-def collect_files_in_path(path="", hidden=False):
+def collect_files_in_path(path="", hidden=False, metrics=[], m_pop_timeout=60):
     """
     help: [ https://stackoverflow.com/questions/237079/how-do-i-get-file-creation-and-modification-date-times ] - use the proper time flag
     help: [ https://stackoverflow.com/questions/49047402/python-3-6-glob-include-hidden-files-and-folders ] - glob no longer includes all files
@@ -83,7 +83,20 @@ def collect_files_in_path(path="", hidden=False):
     if hidden != True:
         filter = glob.glob(os.path.join(path, "**/*"), recursive=True) + \
                  glob.glob(os.path.join(path, ".**/*"), recursive=True)  # get recursively inside folders
+    m_start_time = time.time()
+    m_popouts = 0
+    m_files = 0
+    metric = [x for x in metrics if x["path"] == path][0]
     for fileref in filter:
+        m_files += 1
+        if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
+            m_popouts += 1
+            print("Processed [{}] files out of [{}] files in [{}] estimated time remaining [{}]".format(
+                m_files,
+                metric["files"],
+                print_time( time.time() - m_start_time ),
+                print_time( (metric["files"] - m_files) * (time.time() - m_start_time) / m_files ) # todo: instead of estimating by the number of files, do estimations based on size processed
+                ))
         file = str(fileref)
         if os.path.isfile(file):
             # print(file)
@@ -91,7 +104,7 @@ def collect_files_in_path(path="", hidden=False):
             item = {'path': file,
                     'size': os.path.getsize(file),
                     'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(datetime_format),
-                    'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(encoding)
+                    'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(encoding) # todo: cache this value somehow, because it takes forever to compute for large files
                     }
             files.append(item)
     return files
@@ -101,10 +114,13 @@ def collect_all_files(paths=[], hidden=False, metrics=[]):
     files = []
     for path in paths:
         start_time = time.time()
-        metric = [ x for x in metrics if x["path"] == path][0]
-        print("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
-        meta = collect_files_in_path(path, hidden) # todo: make some estimation of time its going to take
-        print("Collected files in [%.2f] seconds and built up [%s] of metadata" % (time.time() - start_time, print_size(sys.getsizeof(meta))))
+        metric = [x for x in metrics if x["path"] == path][0]
+        print("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"],
+                                                                                             print_size(
+                                                                                                 metric["size"])))
+        meta = collect_files_in_path(path, hidden, metrics)  # todo: make some estimation of time its going to take
+        print("Collected files in [%.2f] seconds and built up [%s] of metadata" % (
+            time.time() - start_time, print_size(sys.getsizeof(meta))))
         files += meta
     return files
 
@@ -161,7 +177,7 @@ def print_size(size):
     gbytes = size % 1024
     size /= 1024
     tbytes = size
-    return "%.2fTB %.2fGB %.2fMB %.2fKB %.2fB" % (tbytes,gbytes,mbytes,kbytes,bytes)
+    return "%.2fTB %.2fGB %.2fMB %.2fKB %.2fB" % (tbytes, gbytes, mbytes, kbytes, bytes)
 
 
 def print_all_metrics(metrics=[]):
