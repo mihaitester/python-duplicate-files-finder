@@ -177,7 +177,9 @@ def collect_all_metrics(paths=[], hidden=False):
     for path in paths:
         m_start_time = time.time()
         print("Collecting metrics for path [{}]".format(path))
-        metrics.append(collect_metrics_in_path(path, hidden))
+        metric = collect_metrics_in_path(path, hidden)
+        metrics.append(metric)
+        print("Path [{}] contains [{}] folders and [{}] items, totaling [{}]".format(metric["path"], metric["folders"], metric["files"], print_size(metric["size"])))
         print("Collected metrics in [%.2f] seconds" % (time.time() - m_start_time))
     return metrics
 
@@ -206,11 +208,6 @@ def print_size(size):
     return "%.2fTB %.2fGB %.2fMB %.2fKB %.2fB" % (tbytes, gbytes, mbytes, kbytes, bytes)
 
 
-def print_all_metrics(metrics=[]):
-    for metric in metrics:
-        print("Path [{}] contains [{}] folders and [{}] items, totaling [{}]".format(metric["path"], metric["folders"], metric["files"], print_size(metric["size"])))
-
-
 def show_menu():
     parser = argparse.ArgumentParser(
         description='Find duplicate files in given paths based on file size and checksum validating content is '
@@ -233,7 +230,6 @@ if __name__ == "__main__":
     args = show_menu()
 
     metrics = collect_all_metrics(args.paths, args.hidden)
-    print_all_metrics(metrics)
 
     files = collect_all_files(args.paths, args.hidden, metrics)  # todo: add some timeit wrappers around these calls which can take a while for large systems
     duplicates = find_duplicates(files)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
