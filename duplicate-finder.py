@@ -55,7 +55,10 @@ def find_duplicates(files=[]):
     :param files: [{path:str,size:int,checksum:str}, ...]
     :return: [[original_file, duplicate1, duplicate2, ...], ...]
     """
+    m_start_time = time.time()
+    print("Started searching for duplicates")
     all_duplicates = []
+    m_duplicates = 0
     files.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
     for i in range(len(files) - 1):
         duplicates_for_file = [files[i]]  # [comment1]: consider the 0 index of each list as the original file
@@ -66,7 +69,9 @@ def find_duplicates(files=[]):
         if len(duplicates_for_file) > 1:
             duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
             all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates
+            m_duplicates += len(duplicates_for_file) - 1
             #  contains more than 1 element, then there are duplicates
+    print("Found [{}] duplicated files totaling [{}] duplicates in [{}]".format(len(all_duplicates), m_duplicates, print_time(time.time() - m_start_time)))
     return all_duplicates
 
 
