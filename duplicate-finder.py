@@ -118,8 +118,10 @@ def collect_metrics_in_path(path="", hidden=False):
         files += len(items)
         folders += len(dirs)
         for i in items:
-            if os.path.isfile(i):
-                size += os.path.getsize(i)
+            p = os.path.join(root, i)
+            # print(p)
+            if os.path.isfile(p):
+                size += os.path.getsize(p)
     return [{'path': path, 'files': files, 'folders': folders, 'size': size}]
 
 
@@ -129,8 +131,25 @@ def collect_all_metrics(paths=[], hidden=False):
         start_time = time.time()
         print("Collecting metrics for path [{}]".format(path))
         metrics += collect_metrics_in_path(path, hidden)
-        print("Collected metrics in [{}] seconds".format(time.time() - start_time))
+        print("Collected metrics in [%.2f] seconds" % (time.time() - start_time))
     return metrics
+
+
+def print_size(size):
+    bytes = size % 1024
+    size /= 1024
+    kbytes = size % 1024
+    size /= 1024
+    mbytes = size % 1024
+    size /= 1024
+    gbytes = size % 1024
+    size /= 1024
+    tbytes = size
+    return "%.2fTB %.2fGB %.2fMB %.2fKB %.2fB" % (tbytes,gbytes,mbytes,kbytes,bytes)
+
+def print_all_metrics(metrics):
+    for metric in metrics:
+        print("Path [{}] contains [{}] folders and [{}] items, totaling [{}]".format(metric["path"], metric["folders"], metric["files"], print_size(metric["size"])))
 
 
 def show_menu():
@@ -155,6 +174,8 @@ if __name__ == "__main__":
     args = show_menu()
 
     metrics = collect_all_metrics(args.paths, args.hidden)
+    print_all_metrics(metrics)
+
     files = collect_all_files(args.paths, args.hidden)  # todo: add some timeit wrappers around these calls which can take a while for large systems
     duplicates = find_duplicates(files)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
 
