@@ -12,6 +12,8 @@ import time
 datetime_format = "%Y-%m-%d_%H-%M-%S"
 encoding = "ISO-8859-1"  # help: [ https://www.codegrepper.com/code-examples/python/UnicodeDecodeError%3A+%27utf-16-le%27+codec+can%27t+decode+bytes+in+position+60-61%3A+illegal+UTF-16+surrogate ]
 
+# todo: add a way to configure what base units to use, like days, or weeks, TB or PB, which are used in logging
+
 
 def timeit(f):
     """
@@ -83,14 +85,15 @@ def find_duplicates(files=[]):
         duplicates_for_file = [files[i]]  # [comment1]: consider the 0 index of each list as the original file
         for j in range(i + 1, len(files)):
             # print("{} - {}".format(i,j))
-            if files[i]["size"] == files[j]["size"] and files[i]["checksum"] == files[j]["checksum"]:
+            if files[i]["size"] == files[j]["size"] and files[i]["checksum"] == files[j]["checksum"] and files[i]["size"] != 0:
+                # todo: figure out what to do with files having size 0, because they can pollute disks as well
                 duplicates_for_file.append(files[j])
         if len(duplicates_for_file) > 1:
             duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
             all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates
             m_duplicates += len(duplicates_for_file) - 1
             #  contains more than 1 element, then there are duplicates
-    print("Found [{}] duplicated files totaling [{}] duplicates in [{}] generating [{}] metadata".format(len(all_duplicates), m_duplicates, print_time(time.time() - m_start_time)), sys.getsizeof(all_duplicates))
+    print("Found [{}] duplicated files having [{}] duplicates and totaling [{}] in [{}] generating [{}] metadata".format(len(all_duplicates), m_duplicates, print_size(sum([ y["size"] for y in [x for x in all_duplicates] ])), print_time(time.time() - m_start_time)), sys.getsizeof(all_duplicates))
     return all_duplicates
 
 
