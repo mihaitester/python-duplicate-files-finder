@@ -2,6 +2,8 @@
 I have been trying to make some backup system and after a while ended with a lot of duplicate files that end up taking up space.
 So I thought about this tool that would help me find out which files are duplicates and ideally remove the duplicates and put some link to the original file thus saving space and allowing for more backups to be stored on a single HDD.
 
+For example processing `15K` files which take up `212GB` HDD takes roughly `40 minutes` to process the hashes, but the overall duplicate identification takes `10 seconds` iterating over a metadata that is less than `100KB` in RAM. 
+
 # Usage
 > duplicate-finder.py [path1] [path2] ... -j -l -e -n
 
