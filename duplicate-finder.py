@@ -158,6 +158,7 @@ def collect_metrics_in_path(path="", hidden=False):
     :param hidden:
     :return: {files:int, folders:int, size:int}
     """
+    # todo: found unused parameter, need to figure out if os.walk traverses hidden folders by default, or folders starting with `.`
     files = 0
     folders = 0
     size = 0
