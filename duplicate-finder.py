@@ -90,12 +90,13 @@ def collect_files_in_path(path="", hidden=False, metric={}, m_pop_timeout=60):
         m_files += 1
         if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
             m_popouts += 1
-            print("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed".format(
+            print("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
                 m_files,
                 metric["files"],
                 print_time( time.time() - m_start_time ),
                 print_time( (metric["size"] - m_size) * (time.time() - m_start_time) / m_size ),
-                m_size / metric["size"] * 100
+                m_size / metric["size"] * 100,
+                print_size( sys.getsizeof(files) )
                 ))
         file = str(fileref)
         if os.path.isfile(file):
