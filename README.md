@@ -14,3 +14,17 @@ For example processing `15K` files which take up `212GB` HDD takes roughly `40 m
 
 # Prerequisites
 Currently tested manually script on `Windows 10`, and with `Python 3.10.6`.
+
+# Example logged info
+```commandline
+Collecting metrics for path [c:\users\notarealuser\downloads]
+Path [c:\users\notarealuser\downloads] contains [0] folders and [3] items, totaling [0.00TB 0.00GB 3.69MB 708.56KB 572.00B]
+Collected metrics in [0.00] seconds
+Collecting files in path [c:\users\notarealuser\downloads] which contains [3] files totaling [0.00TB 0.00GB 3.69MB 708.56KB 572.00B]
+Processed [2/3] files in [0days 00:00:00] ETA:[0days 00:00:13] based on [0.01%] data processed generating [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] metadata
+Collected files in [0days 00:00:00] and built up [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] of metadata
+Started searching for duplicates
+Found [1] duplicated files having [1] duplicates and totaling [0.00TB 0.00GB 3.69MB 708.28KB 290.00B] in [0days 00:00:00] generating [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] metadata
+>>> func:[find_duplicates] took: [0days 00:00:00]
+>>> func:[dump_duplicates] took: [0days 00:00:00]
+```

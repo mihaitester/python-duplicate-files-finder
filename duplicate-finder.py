@@ -93,7 +93,12 @@ def find_duplicates(files=[]):
             all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates
             m_duplicates += len(duplicates_for_file) - 1
             #  contains more than 1 element, then there are duplicates
-    print("Found [{}] duplicated files having [{}] duplicates and totaling [{}] in [{}] generating [{}] metadata".format(len(all_duplicates), m_duplicates, print_size(sum([ y["size"] for y in [x for x in all_duplicates] ])), print_time(time.time() - m_start_time)), sys.getsizeof(all_duplicates))
+    print("Found [{}] duplicated files having [{}] duplicates and totaling [{}] in [{}] generating [{}] metadata".format(
+        len(all_duplicates),
+        m_duplicates,
+        print_size([sum([x["size"] for x in y ]) for y in all_duplicates][0] if len(all_duplicates) > 0 else 0),
+        print_time(time.time() - m_start_time),
+        print_size(sys.getsizeof(all_duplicates))))
     return all_duplicates
 
 
