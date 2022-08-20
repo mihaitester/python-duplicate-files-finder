@@ -6,6 +6,7 @@ import datetime
 import json
 import pathlib
 import subprocess
+import time
 
 datetime_format = "%Y-%m-%d_%H-%M-%S"
 encoding = "ISO-8859-1"  # help: [ https://www.codegrepper.com/code-examples/python/UnicodeDecodeError%3A+%27utf-16-le%27+codec+can%27t+decode+bytes+in+position+60-61%3A+illegal+UTF-16+surrogate ]
@@ -22,6 +23,7 @@ def dump_duplicates(files=[]):
               "w",
               encoding=encoding) as dumpfile:
         dumpfile.write(json.dumps(files, indent=4))
+
 
 def link_back_duplicates(files=[]):
     """
@@ -101,6 +103,36 @@ def collect_all_files(paths=[], hidden=False):
     return files
 
 
+def collect_metrics_in_path(path="", hidden=False):
+    """
+    help: [ https://stackoverflow.com/questions/19747408/how-get-number-of-subfolders-and-folders-using-python-os-walks ]
+    :param path:
+    :param hidden:
+    :return: {files:int, folders:int, size:int}
+    """
+    files = 0
+    folders = 0
+    size = 0
+    # todo: fix this and recursively iterate subfolders
+    for root, dirs, items in os.walk(path):
+        files += len(items)
+        folders += len(dirs)
+        for i in items:
+            if os.path.isfile(i):
+                size += os.path.getsize(i)
+    return [{'path': path, 'files': files, 'folders': folders, 'size': size}]
+
+
+def collect_all_metrics(paths=[], hidden=False):
+    metrics = []
+    for path in paths:
+        start_time = time.time()
+        print("Collecting metrics for path [{}]".format(path))
+        metrics += collect_metrics_in_path(path, hidden)
+        print("Collected metrics in [{}] seconds".format(time.time() - start_time))
+    return metrics
+
+
 def show_menu():
     parser = argparse.ArgumentParser(
         description='Find duplicate files in given paths based on file size and checksum validating content is '
@@ -122,8 +154,9 @@ def show_menu():
 if __name__ == "__main__":
     args = show_menu()
 
-    files = collect_all_files(args.paths, args.hidden) # todo: add some timeit wrappers around these calls which can take a while for large systems
-    duplicates = find_duplicates(files) # todo: figure out how to do in place changes, instead of storing all files metadata for processing
+    metrics = collect_all_metrics(args.paths, args.hidden)
+    files = collect_all_files(args.paths, args.hidden)  # todo: add some timeit wrappers around these calls which can take a while for large systems
+    duplicates = find_duplicates(files)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
 
     if args.json:
         dump_duplicates(duplicates)
@@ -138,5 +171,7 @@ if __name__ == "__main__":
 
     # todo: show progress bar of script based on OS preliminary data,
     #  because for large folders it can take a while and blank screen does not indicate enough feedback
+    #
+    #  need to pre-index files and folders to figure out size of files and distribution in subfolders, then start the indexing of metadata
 
     pass  # used for debug breakpoint
