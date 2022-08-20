@@ -49,7 +49,12 @@ def load_cache(file):
     files = []
     with open(file, "r", encoding=encoding) as readfile:
         files = json.loads(readfile.read())
-    # todo: validate that cached files can be found on disk, if not strip the cache of files not found
+
+    # validate that cached files can be found on disk, if not strip the cache of files not found
+    for i in range(len(files), 0, -1):
+        if not os.path.exists(files[i]["file"]):
+            files.pop(i)
+
     print("Loaded [{}] cached files totaling [{}] metadata".format(len(files), print_size(sys.getsizeof(files))))
     return files
 
