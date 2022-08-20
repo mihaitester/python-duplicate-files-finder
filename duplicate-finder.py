@@ -31,6 +31,30 @@ def timeit(f):
 
 
 @timeit
+def dump_cache(files=[]):
+    """
+    :param files:
+    :return:
+    """
+    with open("{}_{}".format(datetime.datetime.now().strftime(datetime_format),
+                             ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json"),
+              "w",
+              encoding=encoding) as dumpfile:
+        dumpfile.write(json.dumps(files, indent=4))
+
+@timeit
+def load_cache(file):
+    # todo: integrate this with collecting files, if the file is already indexed then its pointless to compute its cache - this could optimize a lot if there are huge files, for which computing the hash takes longer
+    #  for a lot of small files its potentially better to no use cache, and have script recompute hashes than double check hash is not computed already
+    files = []
+    with open(file, "r", encoding=encoding) as readfile:
+        files = json.loads(readfile.read())
+    # todo: validate that cached files can be found on disk, if not strip the cache of files not found
+    print("Loaded [{}] cached files totaling [{}] metadata".format(len(files), print_size(sys.getsizeof(files))))
+    return files
+
+
+@timeit
 def dump_duplicates(files=[]):
     """
     help: [ https://appdividend.com/2022/06/02/how-to-convert-python-list-to-json/ ] - dumping objects to json
@@ -96,17 +120,19 @@ def find_duplicates(files=[]):
     print("Found [{}] duplicated files having [{}] duplicates and totaling [{}] in [{}] generating [{}] metadata".format(
         len(all_duplicates),
         m_duplicates,
-        print_size([sum([x["size"] for x in y ]) for y in all_duplicates][0] if len(all_duplicates) > 0 else 0),
+        print_size([sum([all_duplicates[i]["size"] for i in range(1, len(x))]) for x in all_duplicates][0] if len(all_duplicates) > 0 else 0),
         print_time(time.time() - m_start_time),
         print_size(sys.getsizeof(all_duplicates))))
     return all_duplicates
 
 
-def collect_files_in_path(path="", hidden=False, metric={}, m_pop_timeout=60):
+def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_pop_timeout=60):
     """
     help: [ https://stackoverflow.com/questions/237079/how-do-i-get-file-creation-and-modification-date-times ] - use the proper time flag
     help: [ https://stackoverflow.com/questions/49047402/python-3-6-glob-include-hidden-files-and-folders ] - glob no longer includes all files
     :param path:
+    :param hidden: flag indicating if searching through hidden files
+    :param files: list of files that have been pre-cached, should improve performance
     :return:
     """
     files = []
@@ -118,6 +144,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, m_pop_timeout=60):
     m_popouts = 0
     m_files = 0
     m_size = 1 # avoid division by 0
+    m_cached = 0
     for fileref in filter:
         m_files += 1
         if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
@@ -134,23 +161,49 @@ def collect_files_in_path(path="", hidden=False, metric={}, m_pop_timeout=60):
         if os.path.isfile(file):
             # print(file)
             # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
-            item = {'path': file,
-                    'size': os.path.getsize(file),
-                    'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(datetime_format),
-                    'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(encoding) # todo: cache this value somehow, because it takes forever to compute for large files
-                    }
-            m_size += item['size']
-            files.append(item)
+            if len(cached_files):
+                if file not in [ x["path"] for x in cached_files ]: # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
+                    item = {'path': file,
+                            'size': os.path.getsize(file),
+                            'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(datetime_format),
+                            'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(encoding)
+                            }
+                    m_size += item['size']
+                    files.append(item)
+                else:
+                    m_cached += 1 # this means file is already indexed so we skip rehashing it
+                    pass
+            else:
+                item = {'path': file,
+                        'size': os.path.getsize(file),
+                        'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(datetime_format),
+                        'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(encoding) # todo: figure out elevation for files that are in system folders does not work even if console is admin
+                        }
+                m_size += item['size']
+                files.append(item)
+    print("Processed [{}/{}] uncached files in [{}] generating [{}] metadata".format(
+            m_files - m_cached,
+            metric["files"],
+            print_time(time.time() - m_start_time),
+            print_size(sys.getsizeof(files))
+        ))
     return files
 
 
-def collect_all_files(paths=[], hidden=False, metrics=[]):
-    files = []
+def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[]):
+    """
+    :param paths:
+    :param hidden:
+    :param metrics:
+    :param files: files loaded from precached files
+    :return:
+    """
+    files = cached_files # note: adding cached files directly to files index
     for path in paths:
         m_start_time = time.time()
         metric = [x for x in metrics if x["path"] == path][0]
         print("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
-        meta = collect_files_in_path(path, hidden, metric)
+        meta = collect_files_in_path(path, hidden, metric, cached_files)
         print("Collected files in [%s] and built up [%s] of metadata" % (print_time(time.time() - m_start_time), print_size(sys.getsizeof(meta))))
         files += meta
     return files
@@ -220,6 +273,10 @@ def show_menu():
                     'similar - chance of different files with same size and checksum should be close to 0')
     parser.add_argument('-j', '--json', action='store_true', required=False,
                         help='flag indicating that a json containing duplicate file paths will be generated')
+    parser.add_argument('-c', '--cache', action='store_true', required=False,
+                        help='flag indicating that a cache file containing the indexes should be generated')
+    parser.add_argument('-k', '--kache', required=False,
+                        help='parameter containing the path to a cache file to be loaded so the processing of files is faster')
     parser.add_argument('-l', '--links', action='store_true', required=False,
                         help='flag indicating that a symbolic links should be created from duplicate to original file')
     parser.add_argument('-e', '--erase', action='store_true', required=False,
@@ -235,11 +292,17 @@ def show_menu():
 if __name__ == "__main__":
     args = show_menu()
 
+    cached_files = []
+    if args.kache:
+        cached_files = load_cache(args.kache) # todo: loading precomputed index file does not guarantee all files are indexed, will have to re-hash files not present
+
     metrics = collect_all_metrics(args.paths, args.hidden)
 
-    files = collect_all_files(args.paths, args.hidden, metrics)  # todo: add some timeit wrappers around these calls which can take a while for large systems
+    files = collect_all_files(args.paths, args.hidden, metrics, cached_files)  # todo: add some timeit wrappers around these calls which can take a while for large systems
     duplicates = find_duplicates(files)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
 
+    if args.cache:
+        dump_cache(files)
     if args.json:
         dump_duplicates(duplicates)
     if args.links:
