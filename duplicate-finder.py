@@ -167,6 +167,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
             # print(file)
             # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
             # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
+            # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
             if len(cached_files):
                 if file not in [ x["path"] for x in cached_files ]: # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
                     item = {'path': file,
