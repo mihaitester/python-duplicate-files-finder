@@ -136,4 +136,7 @@ if __name__ == "__main__":
     #  how much metadata was generated, and how much disk size was processed, how much time it took,
     #  percentage of duplicate files found out of all files indexed
 
+    # todo: show progress bar of script based on OS preliminary data,
+    #  because for large folders it can take a while and blank screen does not indicate enough feedback
+
     pass  # used for debug breakpoint
