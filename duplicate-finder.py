@@ -64,14 +64,13 @@ def find_duplicates(files=[]):
             if files[i]["size"] == files[j]["size"] and files[i]["checksum"] == files[j]["checksum"]:
                 duplicates_for_file.append(files[j])
         if len(duplicates_for_file) > 1:
-            duplicates_for_file.sort(
-                key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
+            duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
             all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates
             #  contains more than 1 element, then there are duplicates
     return all_duplicates
 
 
-def collect_files_in_path(path="", hidden=False, metrics=[], m_pop_timeout=60):
+def collect_files_in_path(path="", hidden=False, metric={}, m_pop_timeout=60):
     """
     help: [ https://stackoverflow.com/questions/237079/how-do-i-get-file-creation-and-modification-date-times ] - use the proper time flag
     help: [ https://stackoverflow.com/questions/49047402/python-3-6-glob-include-hidden-files-and-folders ] - glob no longer includes all files
@@ -86,7 +85,6 @@ def collect_files_in_path(path="", hidden=False, metrics=[], m_pop_timeout=60):
     m_start_time = time.time()
     m_popouts = 0
     m_files = 0
-    metric = [x for x in metrics if x["path"] == path][0]
     for fileref in filter:
         m_files += 1
         if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
@@ -115,12 +113,9 @@ def collect_all_files(paths=[], hidden=False, metrics=[]):
     for path in paths:
         start_time = time.time()
         metric = [x for x in metrics if x["path"] == path][0]
-        print("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"],
-                                                                                             print_size(
-                                                                                                 metric["size"])))
-        meta = collect_files_in_path(path, hidden, metrics)  # todo: make some estimation of time its going to take
-        print("Collected files in [%.2f] seconds and built up [%s] of metadata" % (
-            time.time() - start_time, print_size(sys.getsizeof(meta))))
+        print("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
+        meta = collect_files_in_path(path, hidden, metric)
+        print("Collected files in [%.2f] seconds and built up [%s] of metadata" % (time.time() - start_time, print_size(sys.getsizeof(meta))))
         files += meta
     return files
 
