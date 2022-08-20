@@ -37,7 +37,7 @@ def dump_cache(files=[]):
     :return:
     """
     with open("{}_{}".format(datetime.datetime.now().strftime(datetime_format),
-                             ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json"),
+                             ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".cache"),
               "w",
               encoding=encoding) as dumpfile:
         dumpfile.write(json.dumps(files, indent=4))
