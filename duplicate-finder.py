@@ -162,7 +162,7 @@ def print_time(time):
     hours = time % 24
     time /= 24
     days = time
-    return "%ddays %dhours %dminutes %dseconds" % (days, hours, minutes, seconds)
+    return "%ddays %.2d:%.2d:%.2d" % (days, hours, minutes, seconds)
 
 
 def print_size(size):
