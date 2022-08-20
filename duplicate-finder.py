@@ -13,6 +13,22 @@ datetime_format = "%Y-%m-%d_%H-%M-%S"
 encoding = "ISO-8859-1"  # help: [ https://www.codegrepper.com/code-examples/python/UnicodeDecodeError%3A+%27utf-16-le%27+codec+can%27t+decode+bytes+in+position+60-61%3A+illegal+UTF-16+surrogate ]
 
 
+def timeit(f):
+    """
+    help: [ https://stackoverflow.com/questions/1622943/timeit-versus-timing-decorator ]
+    :param f:
+    :return:
+    """
+    def timed(*args, **kw):
+        ts = time.time()
+        result = f(*args, **kw)
+        te = time.time()
+        print('>>> func:[{}] took: [{}]'.format(f.__name__, print_time(te-ts)) )
+        return result
+    return timed
+
+
+@timeit
 def dump_duplicates(files=[]):
     """
     help: [ https://appdividend.com/2022/06/02/how-to-convert-python-list-to-json/ ] - dumping objects to json
@@ -26,6 +42,7 @@ def dump_duplicates(files=[]):
         dumpfile.write(json.dumps(files, indent=4))
 
 
+@timeit
 def link_back_duplicates(files=[]):
     """
     help: [ https://stackoverflow.com/questions/1447575/symlinks-on-windows ]
@@ -39,6 +56,7 @@ def link_back_duplicates(files=[]):
             # subprocess.call(['mklink', '"{}.lnk"'.format(series[i]["path"]), '"{}"'.format(series[0]["path"])], shell=True) # note: does not have sufficient priviledges
 
 
+@timeit
 def delete_duplicates(files=[]):
     """
     :param files: [[original_file, duplicate1, duplicate2, ...], ...]
@@ -50,6 +68,7 @@ def delete_duplicates(files=[]):
             os.remove(series[i]["path"])
 
 
+@timeit
 def find_duplicates(files=[]):
     """
     :param files: [{path:str,size:int,checksum:str}, ...]
@@ -120,11 +139,11 @@ def collect_files_in_path(path="", hidden=False, metric={}, m_pop_timeout=60):
 def collect_all_files(paths=[], hidden=False, metrics=[]):
     files = []
     for path in paths:
-        start_time = time.time()
+        m_start_time = time.time()
         metric = [x for x in metrics if x["path"] == path][0]
         print("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
         meta = collect_files_in_path(path, hidden, metric)
-        print("Collected files in [%s] and built up [%s] of metadata" % (print_time(time.time() - start_time), print_size(sys.getsizeof(meta))))
+        print("Collected files in [%s] and built up [%s] of metadata" % (print_time(time.time() - m_start_time), print_size(sys.getsizeof(meta))))
         files += meta
     return files
 
@@ -153,10 +172,10 @@ def collect_metrics_in_path(path="", hidden=False):
 def collect_all_metrics(paths=[], hidden=False):
     metrics = []
     for path in paths:
-        start_time = time.time()
+        m_start_time = time.time()
         print("Collecting metrics for path [{}]".format(path))
         metrics.append(collect_metrics_in_path(path, hidden))
-        print("Collected metrics in [%.2f] seconds" % (time.time() - start_time))
+        print("Collected metrics in [%.2f] seconds" % (time.time() - m_start_time))
     return metrics
 
 
