@@ -80,8 +80,6 @@ Started searching for duplicates
 Found [640] duplicated files having [1084] duplicates and occupying [0.01TB 10.50GB 512.79MB 809.63KB 642.00B] out of [0.21TB 212.88GB 900.75MB 771.06KB 65.00B] in [0days 00:00:08] generating [0.00TB 0.00GB 0.01MB 5.30KB 312.00B] metadata
 >>> func:[find_duplicates] took: [0days 00:00:13]
 >>> func:[dump_duplicates] took: [0days 00:00:00]
-
-Process finished with exit code 0
 ```
 
 ## Commandline log using cached files
