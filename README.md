@@ -5,12 +5,14 @@ So I thought about this tool that would help me find out which files are duplica
 For example processing `15K` files which take up `212GB` HDD takes roughly `40 minutes` to process the hashes, but the overall duplicate identification takes `10 seconds` iterating over a metadata that is less than `100KB` in RAM. 
 
 # Usage
-> duplicate-finder.py [path1] [path2] ... -j -l -e -n
+> duplicate-finder.py [path1] [path2] ... -j -l -e -n -c -k [cache_file.cache]
 
 * `-j` - flag indicating the creation of a dump a file containing a json with list of sequences of duplicates, where the first element in each sequence is the original file found, and all successive ones are duplicates, format `[[original_file, duplicate1, dulicate2, ...], ...]`
 * `-l` - flag indicating if backlinks from the duplicates to the original file found should be created
 * `-e` - flag indicating that duplicate files should be erased
 * `-n` - flag indicating that python should search hidden folders and files including files and folders starting with `.`
+* `-c` - flag indicating that script should dump the metadata it generates into a json file with the following structure `[{'path':str, 'size':int, 'time':str, 'checksum':str}, ...]`
+* `-k` - parameter indicating the filename of a previously dumped metadata file, it should speed up by skipping rehashing of files already hashed
 
 # Prerequisites
 Currently tested manually script on `Windows 10`, and with `Python 3.10.6`.
