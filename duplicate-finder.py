@@ -132,4 +132,8 @@ if __name__ == "__main__":
     if args.erase:
         delete_duplicates(duplicates)
 
+    # todo: add some metrics, how many duplicate files were found out of how many files were traversed and indexed,
+    #  how much metadata was generated, and how much disk size was processed, how much time it took,
+    #  percentage of duplicate files found out of all files indexed
+
     pass  # used for debug breakpoint
