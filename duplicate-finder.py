@@ -119,13 +119,13 @@ def find_duplicates(files=[]):
                 duplicates_for_file.append(files[j])
         if len(duplicates_for_file) > 1:
             duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
-            all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates
-            m_duplicates += len(duplicates_for_file) - 1
-            #  contains more than 1 element, then there are duplicates
-    print("Found [{}] duplicated files having [{}] duplicates and totaling [{}] in [{}] generating [{}] metadata".format(
+            all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
+            m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+    print("Found [{}] duplicated files having [{}] duplicates and occupying [{}] out of [{}] in [{}] generating [{}] metadata".format(
         len(all_duplicates),
         m_duplicates,
         print_size([sum([all_duplicates[i]["size"] for i in range(1, len(x))]) for x in all_duplicates][0] if len(all_duplicates) > 0 else 0),
+        print_size(sum([x["size"] for x in files])),
         print_time(time.time() - m_start_time),
         print_size(sys.getsizeof(all_duplicates))))
     return all_duplicates
@@ -299,25 +299,22 @@ if __name__ == "__main__":
 
     cached_files = []
     if args.kache:
-        cached_files = load_cache(args.kache) # todo: loading precomputed index file does not guarantee all files are indexed, will have to re-hash files not present
+        cached_files = load_cache(args.kache)
 
     metrics = collect_all_metrics(args.paths, args.hidden)
-
-    files = collect_all_files(args.paths, args.hidden, metrics, cached_files)  # todo: add some timeit wrappers around these calls which can take a while for large systems
-    duplicates = find_duplicates(files)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
+    files = collect_all_files(args.paths, args.hidden, metrics, cached_files)
 
     if args.cache:
         dump_cache(files)
+
+    duplicates = find_duplicates(files) # todo: figure out how to do in place changes, instead of storing all files metadata for processing
+
     if args.json:
         dump_duplicates(duplicates)
     if args.links:
         link_back_duplicates(duplicates)
     if args.erase:
         delete_duplicates(duplicates)
-
-    # todo: add some metrics, how many duplicate files were found out of how many files were traversed and indexed,
-    #  how much metadata was generated, and how much disk size was processed, how much time it took,
-    #  percentage of duplicate files found out of all files indexed
 
     # todo: show progress bar of script based on OS preliminary data,
     #  because for large folders it can take a while and blank screen does not indicate enough feedback
