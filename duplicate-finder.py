@@ -118,7 +118,7 @@ def collect_all_files(paths=[], hidden=False, metrics=[]):
         metric = [x for x in metrics if x["path"] == path][0]
         print("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
         meta = collect_files_in_path(path, hidden, metric)
-        print("Collected files in [%.2f] seconds and built up [%s] of metadata" % (time.time() - start_time, print_size(sys.getsizeof(meta))))
+        print("Collected files in [%s] and built up [%s] of metadata" % (print_time(time.time() - start_time), print_size(sys.getsizeof(meta))))
         files += meta
     return files
 
