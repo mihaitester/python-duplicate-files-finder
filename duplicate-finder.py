@@ -151,7 +151,6 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     m_size = 1 # avoid division by 0
     m_cached = 0
     for fileref in filter:
-        m_files += 1
         if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
             m_popouts += 1
             print("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
@@ -164,6 +163,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
                 ))
         file = str(fileref)
         if os.path.isfile(file):
+            m_files += 1
             # print(file)
             # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
             # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
@@ -227,13 +227,15 @@ def collect_metrics_in_path(path="", hidden=False):
     folders = 0
     size = 0
     for root, dirs, items in os.walk(path):
-        files += len(items)
         folders += len(dirs)
         for i in items:
             p = os.path.join(root, i)
             # print(p)
             if os.path.isfile(p):
+                files += 1
                 size += os.path.getsize(p)
+            # if os.path.isdir(p):
+            #     folders += 1
     return {'path': path, 'files': files, 'folders': folders, 'size': size}
 
 
