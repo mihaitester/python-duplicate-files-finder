@@ -76,7 +76,7 @@ Processed [17415/15280] uncached files in [0days 00:39:18] generating [0.00TB 0.
 Collected files in [0days 00:39:19] and built up [0.00TB 0.00GB 0.06MB 65.65KB 664.00B] of metadata
 >>> func:[dump_cache] took: [0days 00:00:00]
 Started searching for duplicates
-Found [639] duplicated files having [1083] duplicates and occupying [0.00TB 0.00GB 0.00MB 0.01KB 10.00B] out of [0.21TB 212.87GB 890.83MB 847.43KB 441.00B] in [0days 00:00:13] generating [0.00TB 0.00GB 0.01MB 5.30KB 312.00B] metadata
+Found [640] duplicated files having [1084] duplicates and occupying [0.01TB 10.50GB 512.79MB 809.63KB 642.00B] out of [0.21TB 212.88GB 900.75MB 771.06KB 65.00B] in [0days 00:00:08] generating [0.00TB 0.00GB 0.01MB 5.30KB 312.00B] metadata
 >>> func:[find_duplicates] took: [0days 00:00:13]
 >>> func:[dump_duplicates] took: [0days 00:00:00]
 
@@ -103,7 +103,7 @@ Processed [9620/15282] uncached files in [0days 00:00:06] generating [0.00TB 0.0
 Collected files in [0days 00:00:07] and built up [0.00TB 0.00GB 0.00MB 0.09KB 88.00B] of metadata
 >>> func:[dump_cache] took: [0days 00:00:00]
 Started searching for duplicates
-Found [639] duplicated files having [1083] duplicates and occupying [0.00TB 0.00GB 0.00MB 0.01KB 10.00B] out of [0.21TB 212.87GB 894.14MB 138.55KB 565.00B] in [0days 00:00:08] generating [0.00TB 0.00GB 0.01MB 5.30KB 312.00B] metadata
+Found [640] duplicated files having [1084] duplicates and occupying [0.01TB 10.50GB 512.79MB 809.63KB 642.00B] out of [0.21TB 212.88GB 900.75MB 771.06KB 65.00B] in [0days 00:00:08] generating [0.00TB 0.00GB 0.01MB 5.30KB 312.00B] metadata
 >>> func:[find_duplicates] took: [0days 00:00:08]
 >>> func:[dump_duplicates] took: [0days 00:00:00]
 ```

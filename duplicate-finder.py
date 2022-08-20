@@ -124,7 +124,7 @@ def find_duplicates(files=[]):
     print("Found [{}] duplicated files having [{}] duplicates and occupying [{}] out of [{}] in [{}] generating [{}] metadata".format(
         len(all_duplicates),
         m_duplicates,
-        print_size([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates][0] if len(all_duplicates) > 0 else 0),
+        print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates]) if len(all_duplicates) > 0 else 0),
         print_size(sum([x["size"] for x in files])),
         print_time(time.time() - m_start_time),
         print_size(sys.getsizeof(all_duplicates))))
