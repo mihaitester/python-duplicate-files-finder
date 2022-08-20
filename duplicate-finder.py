@@ -85,15 +85,17 @@ def collect_files_in_path(path="", hidden=False, metric={}, m_pop_timeout=60):
     m_start_time = time.time()
     m_popouts = 0
     m_files = 0
+    m_size = 1 # avoid division by 0
     for fileref in filter:
         m_files += 1
         if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
             m_popouts += 1
-            print("Processed [{}] files out of [{}] files in [{}] estimated time remaining [{}]".format(
+            print("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed".format(
                 m_files,
                 metric["files"],
                 print_time( time.time() - m_start_time ),
-                print_time( (metric["files"] - m_files) * (time.time() - m_start_time) / m_files ) # todo: instead of estimating by the number of files, do estimations based on size processed
+                print_time( (metric["size"] - m_size) * (time.time() - m_start_time) / m_size ),
+                m_size / metric["size"] * 100
                 ))
         file = str(fileref)
         if os.path.isfile(file):
@@ -104,6 +106,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, m_pop_timeout=60):
                     'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(datetime_format),
                     'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(encoding) # todo: cache this value somehow, because it takes forever to compute for large files
                     }
+            m_size += item['size']
             files.append(item)
     return files
 
