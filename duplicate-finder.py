@@ -336,6 +336,9 @@ def show_menu():
                         help='parameter containing the path to a cache file to be loaded so the processing of files is faster')
     parser.add_argument('-l', '--links', action='store_true', required=False,
                         help='flag indicating that a symbolic links should be created from duplicate to original file')
+    # todo
+    # parser.add_argument('-r', '--reverse', action='store_true', required=False,
+    #                     help='flag indicating that a symbolic links should be replaced with copies of the original file, useful when restoring a backup')
     parser.add_argument('-e', '--erase', action='store_true', required=False,
                         help='flag indicating that duplicate files will be erased')
     parser.add_argument('-n', '--hidden', action='store_true', required=False,
