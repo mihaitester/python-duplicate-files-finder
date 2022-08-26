@@ -18,6 +18,9 @@ For example processing `15K` files which take up `212GB` HDD takes roughly `40 m
 # Prerequisites
 Currently tested manually script on `Windows 10`, and with `Python 3.10.6`.
 
+# Other similar projects
+* https://pypi.org/project/Duplicate-Finder/
+
 # Example runs of script
 ## Commandline log of first run
 ```commandline
