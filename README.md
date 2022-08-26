@@ -18,8 +18,11 @@ For example processing `15K` files which take up `212GB` HDD takes roughly `40 m
 # Prerequisites
 Currently tested manually script on `Windows 10`, and with `Python 3.10.6`.
 
-# Other similar projects
-* https://pypi.org/project/Duplicate-Finder/
+# Similar projects
+* https://pypi.org/project/Duplicate-Finder/ - exports a `.csv` file of duplicates
+* https://pypi.org/project/duplicate-detector/ - compare 2 folders for similar items, but based on filename alone - can cause loosing of content that is different but with similar filenames
+* https://pypi.org/project/find-duplicate-files/ - similar idea - computes partial hash, to speed up things
+* https://pypi.org/project/duplicate-image-finder/ - works only with images
 
 # Example runs of script
 ## Commandline log of first run
