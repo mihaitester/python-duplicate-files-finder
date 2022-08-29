@@ -320,7 +320,7 @@ def print_size(size):
     return "%.2fTB %.2fGB %.2fMB %.2fKB %.2fB" % (tbytes, gbytes, mbytes, kbytes, bytes)
 
 
-def show_menu():
+def menu():
     parser = argparse.ArgumentParser(
         description='Find duplicate files in given paths based on file size and checksum validating content is '
                     'similar - chance of different files with same size and checksum should be close to 0')
@@ -358,10 +358,12 @@ if __name__ == "__main__":
     args = show_menu()
 
     # note: add a handler for the LOGGER, thus changing the format of the logs
-    LOGGER.setLevel(args.debug)
     handler = logging.StreamHandler()
     handler.setFormatter(LOG_FORMATTER)
+    handler.setLevel(args.debug)
     LOGGER.addHandler(handler)
+
+    LOGGER.setLevel(args.debug)
 
     cached_files = []
     if args.kache:
