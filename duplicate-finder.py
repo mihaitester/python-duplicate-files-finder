@@ -355,7 +355,7 @@ def menu():
 
 
 if __name__ == "__main__":
-    args = show_menu()
+    args = menu()
 
     # note: add a handler for the LOGGER, thus changing the format of the logs
     handler = logging.StreamHandler()
