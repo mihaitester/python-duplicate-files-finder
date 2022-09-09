@@ -209,7 +209,7 @@ def find_duplicates(files=[], m_pop_timeout=60):
             m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
         if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
             # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
-            done_comparisons = (i + 1) * len(files)
+            done_comparisons = int((i + 1) * len(files) / 2)
             total_comparisons = int(len(files) * (len(files) + 1) / 2)
             LOGGER.info("Done [{}/{}] comparisons, comparing [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
                 done_comparisons,
