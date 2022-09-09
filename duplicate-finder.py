@@ -10,13 +10,18 @@ import sys
 import time
 import logging
 
+import time
+import sys
+import threading
+
+
 DATETIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
 ENCODING = "ISO-8859-1"  # help: [ https://www.codegrepper.com/code-examples/python/UnicodeDecodeError%3A+%27utf-16-le%27+codec+can%27t+decode+bytes+in+position+60-61%3A+illegal+UTF-16+surrogate ]
 
 # help: [ https://docs.python.org/3/howto/logging.html#logging-advanced-tutorial ]
 # help: [ https://docs.python.org/3/library/time.html#time.strftime ]
 # help: [ https://stackoverflow.com/questions/6290739/python-logging-use-milliseconds-in-time-format ]
-LOG_FORMATTER = logging.Formatter(fmt='%(asctime)s.%(msecs)03d %(message)s', datefmt=DATETIME_FORMAT)
+LOG_FORMATTER = logging.Formatter(fmt='%(threadName)s__%(asctime)s.%(msecs)03d %(message)s', datefmt=DATETIME_FORMAT)
 LOGGER = logging.Logger(__file__)
 
 
@@ -38,6 +43,43 @@ def timeit(f):
         LOGGER.info('=== func:[{}] took: [{}]'.format(f.__name__, print_time(te - ts)))
         return result
     return timed
+
+
+# use global parameters
+m_start_time = time.time()
+m_popouts = 0
+m_files = 0
+m_size = 1 # avoid division by 0
+m_cached = 0
+m_finished = False
+
+# need to have this global
+metrics = []
+metric = []
+files = []
+
+
+def foo(timeout):
+    global m_start_time, m_popouts, m_files, metric, m_size
+    if (time.time() - m_start_time) / timeout > m_popouts:
+        m_popouts += 1
+        LOGGER.info("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
+                m_files,
+                metric["files"],
+                print_time(time.time() - m_start_time),
+                print_time((metric["size"] - m_size) * (time.time() - m_start_time) / m_size),
+                m_size / metric["size"] * 100,
+                print_size(sys.getsizeof(files))
+            ))
+
+
+def thread_print(timeout=60, micro=5):
+    while True:
+        foo(timeout)
+        for i in range(int(timeout/micro)):
+            if m_finished:
+                return
+            time.sleep(micro)
 
 
 @timeit
@@ -68,7 +110,7 @@ def load_cache(cache_file=""):
             files = json.loads(readfile.read())
         LOGGER.debug("Loaded cache [{}]".format(cache_file))
     except Exception as ex:
-        LOGGER.error("Failed to load cache [{}] with exception [{}]".format(cache_file))
+        LOGGER.error("Failed to load cache [{}] with exception [{}]".format(cache_file, str(ex)))
 
     # validate that cached files can be found on disk, if not strip the cache of files not found
     LOGGER.debug("Stripping files from cache")
@@ -146,6 +188,7 @@ def find_duplicates(files=[]):
     m_duplicates = 0
     files.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
     for i in range(len(files) - 1):
+        # todo: add some printer function here as well, for more than 10K files comparisons do take a while
         duplicates_for_file = [files[i]]  # [comment1]: consider the 0 index of each list as the original file
         for j in range(i + 1, len(files)):
             # print("{} - {}".format(i,j))
@@ -171,6 +214,9 @@ def find_duplicates(files=[]):
     return all_duplicates
 
 
+
+
+
 def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_pop_timeout=60):
     """
     help: [ https://stackoverflow.com/questions/237079/how-do-i-get-file-creation-and-modification-date-times ] - use the proper time flag
@@ -180,32 +226,41 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     :param files: list of files that have been pre-cached, should improve performance
     :return:
     """
+    global files, m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # need this for the printing thread
     files = []
     filter = pathlib.Path(path).glob('**/*')  # get hidden files
     if hidden != True:
         filter = glob.glob(os.path.join(path, "**/*"), recursive=True) + \
                  glob.glob(os.path.join(path, ".**/*"), recursive=True)  # get recursively inside folders
+
     m_start_time = time.time()
     m_popouts = 0
     m_files = 0
     m_size = 1 # avoid division by 0
     m_cached = 0
+
+    m_finished = False
+    t = threading.Thread(target=thread_print, args=[m_pop_timeout]) # pass the timeout on start of thread
+    t.daemon = True
+    t.start()
+
     for fileref in filter:
         # todo: replace this hardcode with a threading logger
         # help: [ https://stackoverflow.com/questions/8600161/executing-periodic-actions ] - every timeout print out current progress
         # help: [ https://superfastpython.com/thread-share-variables/ ] - how to share data with the printing thread
         # help: [ https://docs.python.org/3/library/threading.html ] - basics of python threading
+        # help: [ https://stackoverflow.com/questions/3221655/python-threading-string-arguments ] - pass arguments to thread
         # this will repeat every m_pop_timeout seconds and will print this log
-        if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
-            m_popouts += 1
-            LOGGER.info("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
-                m_files,
-                metric["files"],
-                print_time( time.time() - m_start_time ),
-                print_time( (metric["size"] - m_size) * (time.time() - m_start_time) / m_size ),
-                m_size / metric["size"] * 100,
-                print_size( sys.getsizeof(files) )
-                ))
+        # if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
+        #     m_popouts += 1
+        #     LOGGER.info("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
+        #         m_files,
+        #         metric["files"],
+        #         print_time( time.time() - m_start_time ),
+        #         print_time( (metric["size"] - m_size) * (time.time() - m_start_time) / m_size ),
+        #         m_size / metric["size"] * 100,
+        #         print_size( sys.getsizeof(files) )
+        #         ))
         file = str(fileref)
         if os.path.isfile(file):
             m_files += 1
@@ -243,7 +298,12 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
             print_time(time.time() - m_start_time),
             print_size(sys.getsizeof(files))
         ))
+
+    m_finished = True
+    t.join()
     return files
+
+
 
 
 def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[]):
@@ -256,7 +316,7 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[]):
     """
     files = cached_files # note: adding cached files directly to files index
     for path in paths:
-        m_start_time = time.time()
+        global metric
         metric = [x for x in metrics if x["path"] == path][0]
         LOGGER.debug("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
         meta = collect_files_in_path(path, hidden, metric, cached_files)
