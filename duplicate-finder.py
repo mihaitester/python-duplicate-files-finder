@@ -191,6 +191,8 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     m_size = 1 # avoid division by 0
     m_cached = 0
     for fileref in filter:
+        # todo: replace this hardcode with a threading logger
+        # help: [ https://stackoverflow.com/questions/8600161/executing-periodic-actions ] - every timeout print out current progress
         # this will repeat every m_pop_timeout seconds and will print this log
         if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
             m_popouts += 1
