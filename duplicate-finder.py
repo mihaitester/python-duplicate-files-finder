@@ -191,6 +191,7 @@ def find_duplicates(files=[], m_pop_timeout=60):
     m_popouts = 0
     for i in range(len(files) - 1):
         # todo: add some printer function here as well, for more than 10K files comparisons do take a while
+        # todo: optimize search, by comparing only files that have the same size, which would run faster
         duplicates_for_file = [files[i]]  # [comment1]: consider the 0 index of each list as the original file
         for j in range(i + 1, len(files)):
             # print("{} - {}".format(i,j))
@@ -207,7 +208,17 @@ def find_duplicates(files=[], m_pop_timeout=60):
             all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
             m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
         if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
-            print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
+            # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
+            done_comparisons = (i + 1) * len(files)
+            total_comparisons = int(len(files) * (len(files) + 1) / 2)
+            LOGGER.info("Done [{}/{}] comparisons, comparing [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
+                done_comparisons,
+                total_comparisons,
+                i+1,
+                len(files),
+                print_time( time.time() - m_start_time),
+                print_time( ( total_comparisons - done_comparisons) * (time.time() - m_start_time) / done_comparisons ), # todo: fix this approximation, need to use comparisons as base number instead of files
+                done_comparisons / total_comparisons * 100))
             m_popouts += 1
     LOGGER.info("Found [{}] duplicated files having [{}] duplicates and occupying [{}] out of [{}] in [{}] generating [{}] metadata".format(
         len(all_duplicates),
@@ -217,9 +228,6 @@ def find_duplicates(files=[], m_pop_timeout=60):
         print_time(time.time() - m_start_time),
         print_size(sys.getsizeof(all_duplicates))))
     return all_duplicates
-
-
-
 
 
 def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_pop_timeout=60):
