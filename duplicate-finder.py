@@ -177,7 +177,7 @@ def delete_duplicates(files=[]):
 
 
 @timeit
-def find_duplicates(files=[]):
+def find_duplicates(files=[], m_pop_timeout=60):
     """
     :param files: [{path:str,size:int,checksum:str}, ...]
     :return: [[original_file, duplicate1, duplicate2, ...], ...]
@@ -187,6 +187,8 @@ def find_duplicates(files=[]):
     m_start_time = time.time()
     m_duplicates = 0
     files.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
+    m_processed = 0
+    m_popouts = 0
     for i in range(len(files) - 1):
         # todo: add some printer function here as well, for more than 10K files comparisons do take a while
         duplicates_for_file = [files[i]]  # [comment1]: consider the 0 index of each list as the original file
@@ -204,6 +206,9 @@ def find_duplicates(files=[]):
             duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
             all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
             m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+        if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
+            print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
+            m_popouts += 1
     LOGGER.info("Found [{}] duplicated files having [{}] duplicates and occupying [{}] out of [{}] in [{}] generating [{}] metadata".format(
         len(all_duplicates),
         m_duplicates,
