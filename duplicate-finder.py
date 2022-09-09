@@ -193,6 +193,8 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     for fileref in filter:
         # todo: replace this hardcode with a threading logger
         # help: [ https://stackoverflow.com/questions/8600161/executing-periodic-actions ] - every timeout print out current progress
+        # help: [ https://superfastpython.com/thread-share-variables/ ] - how to share data with the printing thread
+        # help: [ https://docs.python.org/3/library/threading.html ] - basics of python threading
         # this will repeat every m_pop_timeout seconds and will print this log
         if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
             m_popouts += 1
@@ -208,6 +210,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
         if os.path.isfile(file):
             m_files += 1
             # print(file)
+            # todo: use multi-threading to speed up processing of files, split main list into [number of threads] chunks
             # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
             # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
             # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
