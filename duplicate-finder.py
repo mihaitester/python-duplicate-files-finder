@@ -129,6 +129,7 @@ class ThreadWithResult(threading.Thread):
         super().__init__(group=group, target=function, name=name, daemon=daemon)
 
 
+# note: added threading and overall result increased from `10min` to `11min` - interesting result, perhaps threading of hashing works better on large files, whereas serial execution is optimal on small files
 def thread_process_hashes(index, cached_files, timeout=60, micro=2):
     global p_thread_count, p_threads, p_finished, p_lock
     global m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # note: this is very important, update global variables so that printing threads see actual data
@@ -336,6 +337,7 @@ def find_duplicates(items=[], m_pop_timeout=60):
 
 
 # need these to be global
+# todo: optimize this based on battery levels as well or power policy - because running full throttle the CPU does not guarantee optimal speed and energy consumption
 p_thread_count = multiprocessing.cpu_count()
 p_threads = []
 p_lock = threading.Lock() # help: [ https://www.pythontutorial.net/python-concurrency/python-threading-lock/ ] - needed to protect `p_finished` from getting corrupted
