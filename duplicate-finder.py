@@ -68,7 +68,7 @@ def print_collecting_ETA(timeout):
     global m_start_time, m_popouts, m_files, METRIC, m_size
     if (time.time() - m_start_time) / timeout > m_popouts:
         m_popouts += 1
-        LOGGER.info("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
+        LOGGER.info("Processed [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
                 m_files,
                 METRIC["files"],
                 print_time(time.time() - m_start_time),
@@ -85,10 +85,10 @@ def print_duplicates_ETA(timeout):
     if (time.time() - m_start_time) / timeout > m_popouts:
         # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
         done_comparisons = int((i + 1) * len(FILES) / 2)
-        total_comparisons = int(len(FILES) * (len(FILES) + 1) / 2)
+        total_comparisons = int(len(FILES) * (len(FILES) - 1) / 2)
         m_popouts += 1
         LOGGER.info(
-            "Done [{}/{}] comparisons, comparing [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
+            "Done [{}/{}] comparisons of [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
                 done_comparisons,
                 total_comparisons,
                 i + 1,
@@ -105,6 +105,7 @@ def thread_print(function=print_collecting_ETA, timeout=60, micro=2):
     # help: [ https://docs.python.org/3/library/threading.html ] - basics of python threading
     # help: [ https://stackoverflow.com/questions/3221655/python-threading-string-arguments ] - pass arguments to thread
     # help: [ https://www.geeksforgeeks.org/passing-function-as-an-argument-in-python/ ] - sending print function as parameter
+    time.sleep(micro) # note: delay the start of the printing thread such that some data gets processed and better estimates are shown
     while True:
         function(timeout)
         # note: instead of waiting the full timeout use micro sleeps and check if mainthread finished in the meantime
