@@ -291,9 +291,12 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     t.daemon = True
     t.start()
 
-    for fileref in filter:
+    # important: [comment2] using a list of paths, instead of filter increased the processing time from `10min` to `16min`
+    for file in METRIC['items']:
+    # # todo: this is the problem, need to construct the file list when collecting metrics, and then convert that list into chunks that get individually processed
+    # for fileref in filter: # note: using the fileref has some advantages, as the processing is way faster
         # print_collecting_ETA()
-        file = str(fileref)
+        # file = str(fileref)
         if os.path.isfile(file):
             m_files += 1
             # print(file)
@@ -368,7 +371,7 @@ def collect_metrics_in_path(path="", hidden=False):
     :return: {files:int, folders:int, size:int}
     """
     # todo: found unused parameter, need to figure out if os.walk traverses hidden folders by default, or folders starting with `.`
-    files = 0
+    files = []
     folders = 0
     size = 0
     for root, dirs, items in os.walk(path):
@@ -377,11 +380,12 @@ def collect_metrics_in_path(path="", hidden=False):
             p = os.path.join(root, i)
             # print(p)
             if os.path.isfile(p):
-                files += 1
+                # files += 1
+                files.append(p) # important: [comment2] collecting filepaths, and then iterating through the list increased execution time from `10min` to `16min`
                 size += os.path.getsize(p)
             # if os.path.isdir(p):
             #     folders += 1
-    return {'path': path, 'files': files, 'folders': folders, 'size': size}
+    return {'path': path, 'files': len(files), 'folders': folders, 'size': size, 'items': files}
 
 
 @timeit
