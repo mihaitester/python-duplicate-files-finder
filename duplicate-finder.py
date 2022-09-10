@@ -84,24 +84,35 @@ def print_collecting_ETA(timeout):
 
 # need to have this global
 i = 0
+p_progress = []
 def print_duplicates_ETA(timeout):
-    global m_start_time, m_popouts, i, FILES, ETA
+    # todo: change how the ETA is calculated, use an average mean of the chunks processed so far by each thread - currently, depeding on thread different estimates displayed
+    global m_start_time, m_popouts, FILES, ETA, p_progress
     if (time.time() - m_start_time) / timeout > m_popouts:
         # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
-        done_comparisons = int((i + 1) * len(FILES) / 2)
-        total_comparisons = int(len(FILES) * (len(FILES) - 1) / 2)
+        done_comparisons = []
+        total_comparisons = []
+        lower_limit = []
+        upper_limit = []
+        chunk = len(FILES) / p_thread_count
+        for i in range(p_thread_count):
+            lower_limit.append(chunk * i)
+            upper_limit.append(chunk * (i+1))
+            done_comparisons.append( int((p_progress[i] - lower_limit[i]) * (p_progress[i] - lower_limit[i] - 1) / 2) )
+            total_comparisons.append( int((upper_limit[i] - lower_limit[i]) * (upper_limit[i] - lower_limit[i] - 1) / 2) )
+
         m_popouts += 1
-        ETA = (total_comparisons - done_comparisons) * (time.time() - m_start_time) / done_comparisons
+        ETA = (sum(total_comparisons) - sum(done_comparisons)) * (time.time() - m_start_time) / sum(done_comparisons)
         LOGGER.info(
             "Done [{}/{}] comparisons of [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
-                done_comparisons,
-                total_comparisons,
-                i + 1,
+                sum(done_comparisons),
+                sum(total_comparisons),
+                int(sum(p_progress) - sum(lower_limit)),
                 len(FILES),
                 print_time(time.time() - m_start_time),
                 print_time(ETA),
                 # todo: fix this approximation, need to use comparisons as base number instead of files
-                done_comparisons / total_comparisons * 100))
+                sum(done_comparisons) / sum(total_comparisons) * 100))
 
 
 def thread_print(function=print_collecting_ETA, timeout=60, micro=2):
@@ -126,7 +137,49 @@ class ThreadWithResult(threading.Thread):
     def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
         def function():
             self.result = target(*args, **kwargs)
-        super().__init__(group=group, target=function, name=name, daemon=daemon)
+        super().__init__(group=group, target=function, name=name, daemon=daemon) # todo: fix this overload as it renames the thread function
+
+def thread_process_duplicates(index, items, timeout=60, micro=2):
+    global p_thread_count, p_threads, p_finished, p_lock, p_progress
+    global m_start_time, FILES, m_finished, m_popouts, m_duplicates # note: this is very important, update the global variables so that threads see the actual data
+
+    chunk = int(len(items) / p_thread_count) + 1  # add 1 file overlap so that all files get processed
+    lower_limit = chunk * index
+    upper_limit = chunk * (index + 1)
+    if upper_limit > len(items):
+        upper_limit = len(items)
+
+    LOGGER.info("Thread [{}] started processing chunk [{},{}] of [{}] files".format(index, chunk * index, upper_limit, len(items)))
+
+    all_duplicates = []
+
+    # for i in range(len(items) - 1):
+    for i in range(lower_limit, upper_limit - 1):
+        # print_duplicates_ETA()
+        with p_lock:
+            p_progress[index] = i
+        # todo: optimize search, by comparing only files that have the same size, which would run faster
+        duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
+        # todo: because this is incremental select search, first threads have a bigger chunk to process than subsequent threads, hence need to either change this search, or redistribute workload to finishing threads - dynamic loading for thread pooling
+        for j in range(i + 1, len(items)):
+            # print("{} - {}".format(i,j))
+            if items[i]["size"] == items[j]["size"] and items[i]["checksum"] == items[j]["checksum"] and items[i]["size"] != 0:
+                LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
+                duplicates_for_file.append(items[j])
+            else:
+                if items[i]["size"] == 0:
+                    # todo: figure out what to do with  having size 0, because they can pollute disks as well
+                    LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
+        if len(duplicates_for_file) > 1:
+            LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
+            duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
+            all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
+            # with p_lock:
+            m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+
+    with p_lock:
+        p_finished[index] = True
+    return all_duplicates
 
 
 # note: added threading and overall result increased from `10min` to `11min` - interesting result, perhaps threading of hashing works better on large files, whereas serial execution is optimal on small files
@@ -287,11 +340,12 @@ def find_duplicates(items=[], m_pop_timeout=60):
     :param items: [{path:str,size:int,checksum:str}, ...]
     :return: [[original_file, duplicate1, duplicate2, ...], ...]
     """
-    global m_start_time, FILES, m_finished, m_popouts, i # note: this is very important, update the global variables so that threads see the actual data
+    global m_start_time, FILES, m_finished, m_popouts, m_duplicates, p_progress # note: this is very important, update the global variables so that threads see the actual data
 
     LOGGER.info("Started searching for duplicates among [{}] indexed files".format( len(items)) )
 
     all_duplicates = []
+
     m_start_time = time.time()
     m_duplicates = 0
     items.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
@@ -303,24 +357,61 @@ def find_duplicates(items=[], m_pop_timeout=60):
     t.daemon = True
     t.start()
 
-    for i in range(len(items) - 1):
-        # print_duplicates_ETA()
-        # todo: optimize search, by comparing only files that have the same size, which would run faster
-        duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
-        for j in range(i + 1, len(items)):
-            # print("{} - {}".format(i,j))
-            if items[i]["size"] == items[j]["size"] and items[i]["checksum"] == items[j]["checksum"] and items[i]["size"] != 0:
-                LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
-                duplicates_for_file.append(items[j])
-            else:
-                if items[i]["size"] == 0:
-                    # todo: figure out what to do with  having size 0, because they can pollute disks as well
-                    LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
-        if len(duplicates_for_file) > 1:
-            LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
-            duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
-            all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
-            m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+    # help: [ https://stackoverflow.com/questions/1006289/how-to-find-out-the-number-of-cpus-using-python ]
+    # todo: thread throttleing, need to figure out solution to throttleing and optimize the number of threads
+    # todo: thread dynamic loading, if a thread finishes processing, have another thread chunk its data again, and spread the load
+    p_finished = [False] * p_thread_count
+    p_threads = [None] * p_thread_count
+    p_progress = [0] * p_thread_count
+    # for i in range(p_thread_count):
+    #     p_finished.append(False)
+
+    for i in range(p_thread_count):
+        # with p_lock:
+        #     p_finished[i] = False
+        # todo: figure out if chunking is possible, as passing items to each thread creates duplicated lists which occupy-RAM and slow down processor, despite being used as read-only resource
+        p = ThreadWithResult(target=thread_process_duplicates, args=[i, items, m_pop_timeout])
+        p.daemon = True
+        p_threads[i] = p
+        p.start()
+
+    # note: while not finished processing, sleep for a while and then check again if threads finished
+    # todo: adapt the sleep timeout based on ETA reported by each thread, that way remove aggressive pooling which adds overhead
+    while False in p_finished:
+        # timeout = int(ETA / 2)
+        # if timeout > m_pop_timeout:
+        #     timeout = m_pop_timeout
+        # if timeout < 2:
+        #     timeout = 2
+        # # print("Sleeping ... [{}]".format( timeout ))
+        # time.sleep( timeout )
+        # todo: ideally track status of threads across time, would help a lot to print changes in this array when they happen
+        LOGGER.debug("Finished threads: [{}]".format(p_finished))
+        time.sleep(5)
+        for i in range(len(p_threads)):
+            if p_threads[i] and p_finished[i]:
+                p_threads[i].join()
+                all_duplicates += p_threads[i].result
+                p_threads[i] = None
+
+    # for i in range(len(items) - 1):
+    #     # print_duplicates_ETA()
+    #     # todo: optimize search, by comparing only files that have the same size, which would run faster
+    #     duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
+    #     for j in range(i + 1, len(items)):
+    #         # print("{} - {}".format(i,j))
+    #         if items[i]["size"] == items[j]["size"] and items[i]["checksum"] == items[j]["checksum"] and items[i]["size"] != 0:
+    #             LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
+    #             duplicates_for_file.append(items[j])
+    #         else:
+    #             if items[i]["size"] == 0:
+    #                 # todo: figure out what to do with  having size 0, because they can pollute disks as well
+    #                 LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
+    #     if len(duplicates_for_file) > 1:
+    #         LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
+    #         duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
+    #         all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
+    #         m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
 
     LOGGER.info("Found [{}] duplicated files having [{}] duplicates and occupying [{}] out of [{}] in [{}] generating [{}] metadata".format(
         len(all_duplicates),
