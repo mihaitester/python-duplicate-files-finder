@@ -139,9 +139,13 @@ class ThreadWithResult(threading.Thread):
             self.result = target(*args, **kwargs)
         super().__init__(group=group, target=function, name=name, daemon=daemon) # todo: fix this overload as it renames the thread function
 
+
+# note: this parallelization increased the execution time from `11min` to `16min`, so chunking bellow a specific number of files actually introduces more overhead instead of speeding up processing
 def thread_process_duplicates(index, items, timeout=60, micro=2):
     global p_thread_count, p_threads, p_finished, p_lock, p_progress
-    global m_start_time, FILES, m_finished, m_popouts, m_duplicates # note: this is very important, update the global variables so that threads see the actual data
+    global FILES, m_finished, m_popouts, m_duplicates # note: this is very important, update the global variables so that threads see the actual data
+
+    m_start_time = time.time()
 
     chunk = int(len(items) / p_thread_count) + 1  # add 1 file overlap so that all files get processed
     lower_limit = chunk * index
@@ -179,13 +183,18 @@ def thread_process_duplicates(index, items, timeout=60, micro=2):
 
     with p_lock:
         p_finished[index] = True
+
+    LOGGER.info("Thread [{}] finished processing chunk [{},{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, lower_limit, upper_limit, len(all_duplicates), sum([len(x) - 1 for x in all_duplicates]), print_time(time.time() - m_start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates]) if len(all_duplicates) > 0 else 0)))
+
     return all_duplicates
 
 
 # note: added threading and overall result increased from `10min` to `11min` - interesting result, perhaps threading of hashing works better on large files, whereas serial execution is optimal on small files
 def thread_process_hashes(index, cached_files, timeout=60, micro=2):
     global p_thread_count, p_threads, p_finished, p_lock
-    global m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # note: this is very important, update global variables so that printing threads see actual data
+    global m_popouts, m_files, m_size, m_cached, m_finished # note: this is very important, update global variables so that printing threads see actual data
+
+    m_start_time = time.time()
 
     chunk = int( len(METRIC["items"]) / p_thread_count ) + 1 # add 1 file overlap so that all files get processed
     lower_limit = chunk * index
@@ -236,6 +245,9 @@ def thread_process_hashes(index, cached_files, timeout=60, micro=2):
 
     with p_lock:
         p_finished[index] = True # signal thread finished, mainthread will collect its results and clear the thread
+
+    LOGGER.info("Thread [{}] finished processing chunk [{},{}] of [{}] files with [{}] cached files in [{}] generating [{}] metadata".format(index, lower_limit, upper_limit, len(METRIC["items"]), len(cached_files), print_time(time.time() - m_start_time), print_size(sys.getsizeof(items))))
+
     return items
 
 
@@ -340,7 +352,7 @@ def find_duplicates(items=[], m_pop_timeout=60):
     :param items: [{path:str,size:int,checksum:str}, ...]
     :return: [[original_file, duplicate1, duplicate2, ...], ...]
     """
-    global m_start_time, FILES, m_finished, m_popouts, m_duplicates, p_progress # note: this is very important, update the global variables so that threads see the actual data
+    global m_start_time, FILES, m_finished, m_popouts, m_duplicates, p_progress, p_finished # note: this is very important, update the global variables so that threads see the actual data
 
     LOGGER.info("Started searching for duplicates among [{}] indexed files".format( len(items)) )
 
@@ -386,12 +398,13 @@ def find_duplicates(items=[], m_pop_timeout=60):
         # # print("Sleeping ... [{}]".format( timeout ))
         # time.sleep( timeout )
         # todo: ideally track status of threads across time, would help a lot to print changes in this array when they happen
-        LOGGER.debug("Finished threads: [{}]".format(p_finished))
+        # LOGGER.debug("Finished threads: [{}]".format(p_finished))
         time.sleep(5)
         for i in range(len(p_threads)):
             if p_threads[i] and p_finished[i]:
+                LOGGER.debug("Finished threads: [{}]".format(p_finished))
                 p_threads[i].join()
-                all_duplicates += p_threads[i].result
+                all_duplicates += p_threads[i].result # todo: figure out if chunking algorithm works for this because its wrongfully identifying `92K` duplicates for `45K` total files
                 p_threads[i] = None
 
     # for i in range(len(items) - 1):
@@ -488,11 +501,11 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
         # # print("Sleeping ... [{}]".format( timeout ))
         # time.sleep( timeout )
         # todo: ideally track status of threads across time, would help a lot to print changes in this array when they happen
-        LOGGER.debug("Finished threads: [{}]".format(p_finished))
+        # LOGGER.debug("Finished threads: [{}]".format(p_finished))
         time.sleep(5)
         for i in range(len(p_threads)):
             if p_threads[i] and p_finished[i]:
-
+                LOGGER.debug("Finished threads: [{}]".format(p_finished))
                 p_threads[i].join()
                 items += p_threads[i].result
                 p_threads[i] = None
