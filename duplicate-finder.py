@@ -45,6 +45,11 @@ def timeit(f):
     return timed
 
 
+# help: [ https://stackoverflow.com/questions/8600161/executing-periodic-actions ] - every timeout print out current progress
+# help: [ https://superfastpython.com/thread-share-variables/ ] - how to share data with the printing thread
+# help: [ https://docs.python.org/3/library/threading.html ] - basics of python threading
+# help: [ https://stackoverflow.com/questions/3221655/python-threading-string-arguments ] - pass arguments to thread
+
 # use global parameters
 m_start_time = time.time()
 m_popouts = 0
@@ -59,7 +64,7 @@ metric = []
 files = []
 
 
-def foo(timeout):
+def print_collecting_ETA(timeout):
     global m_start_time, m_popouts, m_files, metric, m_size
     if (time.time() - m_start_time) / timeout > m_popouts:
         m_popouts += 1
@@ -73,9 +78,35 @@ def foo(timeout):
             ))
 
 
-def thread_print(timeout=60, micro=5):
+i = 0
+def print_duplicates_ETA(timeout):
+    global m_start_time, m_popouts, i, files
+    if (time.time() - m_start_time) / timeout > m_popouts:
+        # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
+        done_comparisons = int((i + 1) * len(files) / 2)
+        total_comparisons = int(len(files) * (len(files) + 1) / 2)
+        m_popouts += 1
+        LOGGER.info(
+            "Done [{}/{}] comparisons, comparing [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
+                done_comparisons,
+                total_comparisons,
+                i + 1,
+                len(files),
+                print_time(time.time() - m_start_time),
+                print_time((total_comparisons - done_comparisons) * (time.time() - m_start_time) / done_comparisons),
+                # todo: fix this approximation, need to use comparisons as base number instead of files
+                done_comparisons / total_comparisons * 100))
+
+
+def thread_print(function=print_collecting_ETA, timeout=60, micro=2):
+    # help: [ https://stackoverflow.com/questions/8600161/executing-periodic-actions ] - every timeout print out current progress
+    # help: [ https://superfastpython.com/thread-share-variables/ ] - how to share data with the printing thread
+    # help: [ https://docs.python.org/3/library/threading.html ] - basics of python threading
+    # help: [ https://stackoverflow.com/questions/3221655/python-threading-string-arguments ] - pass arguments to thread
+    # help: [ https://www.geeksforgeeks.org/passing-function-as-an-argument-in-python/ ] - sending print function as parameter
     while True:
-        foo(timeout)
+        function(timeout)
+        # note: instead of waiting the full timeout use micro sleeps and check if mainthread finished in the meantime
         for i in range(int(timeout/micro)):
             if m_finished:
                 return
@@ -177,20 +208,28 @@ def delete_duplicates(files=[]):
 
 
 @timeit
-def find_duplicates(files=[], m_pop_timeout=60):
+def find_duplicates(items=[], m_pop_timeout=60):
     """
     :param files: [{path:str,size:int,checksum:str}, ...]
     :return: [[original_file, duplicate1, duplicate2, ...], ...]
     """
-    LOGGER.debug("Started searching for duplicates among [{}] indexed files", len(files))
+    LOGGER.info("Started searching for duplicates among [{}] indexed files".format( len(items)) )
+    global m_start_time, files, m_finished, m_popouts, i
     all_duplicates = []
     m_start_time = time.time()
     m_duplicates = 0
+    files = items
     files.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
     m_processed = 0
     m_popouts = 0
+
+    m_finished = False
+    t = threading.Thread(target=thread_print, args=[print_duplicates_ETA, m_pop_timeout])  # pass the timeout on start of thread
+    t.daemon = True
+    t.start()
+
     for i in range(len(files) - 1):
-        # todo: add some printer function here as well, for more than 10K files comparisons do take a while
+        # print_duplicates_ETA()
         # todo: optimize search, by comparing only files that have the same size, which would run faster
         duplicates_for_file = [files[i]]  # [comment1]: consider the 0 index of each list as the original file
         for j in range(i + 1, len(files)):
@@ -207,19 +246,7 @@ def find_duplicates(files=[], m_pop_timeout=60):
             duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
             all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
             m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
-        if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
-            # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
-            done_comparisons = int((i + 1) * len(files) / 2)
-            total_comparisons = int(len(files) * (len(files) + 1) / 2)
-            LOGGER.info("Done [{}/{}] comparisons, comparing [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
-                done_comparisons,
-                total_comparisons,
-                i+1,
-                len(files),
-                print_time( time.time() - m_start_time),
-                print_time( ( total_comparisons - done_comparisons) * (time.time() - m_start_time) / done_comparisons ), # todo: fix this approximation, need to use comparisons as base number instead of files
-                done_comparisons / total_comparisons * 100))
-            m_popouts += 1
+
     LOGGER.info("Found [{}] duplicated files having [{}] duplicates and occupying [{}] out of [{}] in [{}] generating [{}] metadata".format(
         len(all_duplicates),
         m_duplicates,
@@ -227,6 +254,8 @@ def find_duplicates(files=[], m_pop_timeout=60):
         print_size(sum([x["size"] for x in files])),
         print_time(time.time() - m_start_time),
         print_size(sys.getsizeof(all_duplicates))))
+    m_finished = True
+    t.join()
     return all_duplicates
 
 
@@ -253,27 +282,12 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     m_cached = 0
 
     m_finished = False
-    t = threading.Thread(target=thread_print, args=[m_pop_timeout]) # pass the timeout on start of thread
+    t = threading.Thread(target=thread_print, args=[print_collecting_ETA, m_pop_timeout]) # pass the timeout on start of thread
     t.daemon = True
     t.start()
 
     for fileref in filter:
-        # todo: replace this hardcode with a threading logger
-        # help: [ https://stackoverflow.com/questions/8600161/executing-periodic-actions ] - every timeout print out current progress
-        # help: [ https://superfastpython.com/thread-share-variables/ ] - how to share data with the printing thread
-        # help: [ https://docs.python.org/3/library/threading.html ] - basics of python threading
-        # help: [ https://stackoverflow.com/questions/3221655/python-threading-string-arguments ] - pass arguments to thread
-        # this will repeat every m_pop_timeout seconds and will print this log
-        # if (time.time() - m_start_time) / m_pop_timeout > m_popouts:
-        #     m_popouts += 1
-        #     LOGGER.info("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
-        #         m_files,
-        #         metric["files"],
-        #         print_time( time.time() - m_start_time ),
-        #         print_time( (metric["size"] - m_size) * (time.time() - m_start_time) / m_size ),
-        #         m_size / metric["size"] * 100,
-        #         print_size( sys.getsizeof(files) )
-        #         ))
+        # print_collecting_ETA()
         file = str(fileref)
         if os.path.isfile(file):
             m_files += 1
@@ -327,6 +341,7 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[]):
     :param files: files loaded from precached files
     :return:
     """
+    LOGGER.info("Started processing hashes for files from [{}] paths".format( len(paths)) )
     files = cached_files # note: adding cached files directly to files index
     for path in paths:
         global metric
