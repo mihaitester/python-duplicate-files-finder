@@ -157,6 +157,7 @@ def thread_process_duplicates(index, items, timeout=60, micro=2):
 
     all_duplicates = []
 
+    # todo: BUG: duplicates will be reinserted in the list of duplicates, need to check if a file was already found as duplicated, then it should not be added to the list again
     # for i in range(len(items) - 1):
     for i in range(lower_limit, upper_limit - 1):
         # print_duplicates_ETA()
