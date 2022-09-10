@@ -50,6 +50,7 @@ def timeit(f):
 # help: [ https://docs.python.org/3/library/threading.html ] - basics of python threading
 # help: [ https://stackoverflow.com/questions/3221655/python-threading-string-arguments ] - pass arguments to thread
 
+# todo: replace global variables with some shared memory object containing required data
 # use global parameters
 m_start_time = time.time()
 m_popouts = 0
@@ -59,39 +60,39 @@ m_cached = 0
 m_finished = False
 
 # need to have this global
-metrics = []
-metric = []
-files = []
+METRIC = {}
+FILES = []
 
 
 def print_collecting_ETA(timeout):
-    global m_start_time, m_popouts, m_files, metric, m_size
+    global m_start_time, m_popouts, m_files, METRIC, m_size
     if (time.time() - m_start_time) / timeout > m_popouts:
         m_popouts += 1
         LOGGER.info("Processed [{}/{}] files in [{}] ETA:[{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
                 m_files,
-                metric["files"],
+                METRIC["files"],
                 print_time(time.time() - m_start_time),
-                print_time((metric["size"] - m_size) * (time.time() - m_start_time) / m_size),
-                m_size / metric["size"] * 100,
-                print_size(sys.getsizeof(files))
+                print_time((METRIC["size"] - m_size) * (time.time() - m_start_time) / m_size),
+                m_size / METRIC["size"] * 100,
+                print_size(sys.getsizeof(FILES))
             ))
 
 
+# need to have this global
 i = 0
 def print_duplicates_ETA(timeout):
-    global m_start_time, m_popouts, i, files
+    global m_start_time, m_popouts, i, FILES
     if (time.time() - m_start_time) / timeout > m_popouts:
         # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
-        done_comparisons = int((i + 1) * len(files) / 2)
-        total_comparisons = int(len(files) * (len(files) + 1) / 2)
+        done_comparisons = int((i + 1) * len(FILES) / 2)
+        total_comparisons = int(len(FILES) * (len(FILES) + 1) / 2)
         m_popouts += 1
         LOGGER.info(
             "Done [{}/{}] comparisons, comparing [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
                 done_comparisons,
                 total_comparisons,
                 i + 1,
-                len(files),
+                len(FILES),
                 print_time(time.time() - m_start_time),
                 print_time((total_comparisons - done_comparisons) * (time.time() - m_start_time) / done_comparisons),
                 # todo: fix this approximation, need to use comparisons as base number instead of files
@@ -114,9 +115,9 @@ def thread_print(function=print_collecting_ETA, timeout=60, micro=2):
 
 
 @timeit
-def dump_cache(files=[]):
+def dump_cache(items=[]):
     """
-    :param files:
+    :param items:
     :return:
     """
     cache_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
@@ -124,7 +125,7 @@ def dump_cache(files=[]):
     try:
         LOGGER.info("Dumping cache [{}]".format(cache_file))
         with open(cache_file, "w", encoding=ENCODING) as dumpfile:
-            dumpfile.write(json.dumps(files, indent=4))
+            dumpfile.write(json.dumps(items, indent=4))
         LOGGER.debug("Dumped cache [{}]".format(cache_file))
     except Exception as ex:
         LOGGER.error("Failed to dump cache [{}] with exception [{}]".format(cache_file), ex.message)
@@ -134,32 +135,32 @@ def dump_cache(files=[]):
 def load_cache(cache_file=""):
     # todo: integrate this with collecting files, if the file is already indexed then its pointless to compute its cache - this could optimize a lot if there are huge files, for which computing the hash takes longer
     #  for a lot of small files its potentially better to no use cache, and have script recompute hashes than double check hash is not computed already
-    files = []
+    # global files
+    items = []
     try:
         LOGGER.info("Loading cache [{}]".format(cache_file))
         with open(cache_file, "r", encoding=ENCODING) as readfile:
-            files = json.loads(readfile.read())
+            items = json.loads(readfile.read())
         LOGGER.debug("Loaded cache [{}]".format(cache_file))
     except Exception as ex:
         LOGGER.error("Failed to load cache [{}] with exception [{}]".format(cache_file, str(ex)))
 
     # validate that cached files can be found on disk, if not strip the cache of files not found
     LOGGER.debug("Stripping files from cache")
-    loaded_files = len(files)
-    for i in range(len(files)-1, 0, -1):
+    loaded_files = len(items)
+    for i in range(len(items)-1, 0, -1):
         if not os.path.exists(files[i]["path"]):
-                files.pop(i)
-    LOGGER.debug("Stripped [{}] files from cache that are not on disk".format(loaded_files - len(files)))
-
-    LOGGER.info("Loaded [{}] cached files totaling [{}] metadata".format(len(files), print_size(sys.getsizeof(files))))
-    return files
+                items.pop(i)
+    LOGGER.debug("Stripped [{}] files from cache that are not on disk".format(loaded_files - len(items)))
+    LOGGER.info("Loaded [{}] cached files totaling [{}] metadata".format(len(items), print_size(sys.getsizeof(items))))
+    return items
 
 
 @timeit
-def dump_duplicates(files=[]):
+def dump_duplicates(items=[]):
     """
     help: [ https://appdividend.com/2022/06/02/how-to-convert-python-list-to-json/ ] - dumping objects to json
-    :param files: [[original_file, duplicate1, duplicate2, ...], ...]
+    :param items: [[original_file, duplicate1, duplicate2, ...], ...]
     :return:
     """
     duplicates_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
@@ -167,21 +168,21 @@ def dump_duplicates(files=[]):
     try:
         LOGGER.info("Dumping duplicates file [{}]".format(duplicates_file))
         with open(duplicates_file, "w", encoding=ENCODING) as dumpfile:
-            dumpfile.write(json.dumps(files, indent=4))
+            dumpfile.write(json.dumps(items, indent=4))
         LOGGER.debug("Dumped duplicates file [{}]".format(duplicates_file))
     except Exception as ex:
         LOGGER.error("Failed to dump duplicates file [{}] with exception [{}]".format(duplicates_file, ex.message))
 
 
 @timeit
-def link_back_duplicates(files=[]):
+def link_back_duplicates(items=[]):
     """
     help: [ https://stackoverflow.com/questions/1447575/symlinks-on-windows ]
     help: [ https://pypi.org/project/pywin32/ ]
-    :param files: [[original_file, duplicate1, duplicate2, ...], ...]
+    :param items: [[original_file, duplicate1, duplicate2, ...], ...]
     :return:
     """
-    for series in files:
+    for series in items:
         for i in range(1, len(series)):
             try:
                 LOGGER.info("Linking [{}] to file [{}]", '{}.lnk'.format(series[i]["path"], series[0]["path"]))
@@ -191,13 +192,14 @@ def link_back_duplicates(files=[]):
             except Exception as ex:
                 LOGGER.error("Failed linking [{}] to file [{}] with exception [{}]", '{}.lnk'.format(series[i]["path"], series[0]["path"], ex.message))
 
+
 @timeit
-def delete_duplicates(files=[]):
+def delete_duplicates(items=[]):
     """
-    :param files: [[original_file, duplicate1, duplicate2, ...], ...]
+    :param items: [[original_file, duplicate1, duplicate2, ...], ...]
     :return:
     """
-    for series in files:
+    for series in items:
         for i in range(1, len(series)):
             try:
                 LOGGER.info("Deleting [{}]".format(series[i]["path"]))
@@ -210,16 +212,17 @@ def delete_duplicates(files=[]):
 @timeit
 def find_duplicates(items=[], m_pop_timeout=60):
     """
-    :param files: [{path:str,size:int,checksum:str}, ...]
+    :param items: [{path:str,size:int,checksum:str}, ...]
     :return: [[original_file, duplicate1, duplicate2, ...], ...]
     """
+    global m_start_time, FILES, m_finished, m_popouts, i # note: this is very important, update the global variables so that threads see the actual data
+
     LOGGER.info("Started searching for duplicates among [{}] indexed files".format( len(items)) )
-    global m_start_time, files, m_finished, m_popouts, i
+
     all_duplicates = []
     m_start_time = time.time()
     m_duplicates = 0
-    files = items
-    files.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
+    items.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
     m_processed = 0
     m_popouts = 0
 
@@ -228,21 +231,21 @@ def find_duplicates(items=[], m_pop_timeout=60):
     t.daemon = True
     t.start()
 
-    for i in range(len(files) - 1):
+    for i in range(len(items) - 1):
         # print_duplicates_ETA()
         # todo: optimize search, by comparing only files that have the same size, which would run faster
-        duplicates_for_file = [files[i]]  # [comment1]: consider the 0 index of each list as the original file
-        for j in range(i + 1, len(files)):
+        duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
+        for j in range(i + 1, len(items)):
             # print("{} - {}".format(i,j))
-            if files[i]["size"] == files[j]["size"] and files[i]["checksum"] == files[j]["checksum"] and files[i]["size"] != 0:
-                LOGGER.debug("Found duplicate [{}] for file [{}]".format(files[j]["path"], files[i]["path"]))
-                duplicates_for_file.append(files[j])
+            if items[i]["size"] == items[j]["size"] and items[i]["checksum"] == items[j]["checksum"] and items[i]["size"] != 0:
+                LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
+                duplicates_for_file.append(items[j])
             else:
-                if files[i]["size"] == 0:
-                    # todo: figure out what to do with files having size 0, because they can pollute disks as well
-                    LOGGER.debug("Found empty file [{}]".format(files[i]["path"]))
+                if items[i]["size"] == 0:
+                    # todo: figure out what to do with  having size 0, because they can pollute disks as well
+                    LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
         if len(duplicates_for_file) > 1:
-            LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, files[i]["path"]))
+            LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
             duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
             all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
             m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
@@ -251,7 +254,7 @@ def find_duplicates(items=[], m_pop_timeout=60):
         len(all_duplicates),
         m_duplicates,
         print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates]) if len(all_duplicates) > 0 else 0),
-        print_size(sum([x["size"] for x in files])),
+        print_size(sum([x["size"] for x in items])),
         print_time(time.time() - m_start_time),
         print_size(sys.getsizeof(all_duplicates))))
     m_finished = True
@@ -268,8 +271,9 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     :param files: list of files that have been pre-cached, should improve performance
     :return:
     """
-    global m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # need this for the printing thread
-    files = []
+    global m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # note: this is very important, update global variables so that printing threads see actual data
+
+    items = []
     filter = pathlib.Path(path).glob('**/*')  # get hidden files
     if hidden != True:
         filter = glob.glob(os.path.join(path, "**/*"), recursive=True) + \
@@ -305,7 +309,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
                             'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
                             }
                     m_size += item['size']
-                    files.append(item)
+                    items.append(item)
                 else:
                     LOGGER.debug("Skipped already indexed file [{}]".format(file))
                     m_cached += 1 # this means file is already indexed so we skip rehashing it
@@ -318,17 +322,17 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
                         'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         }
                 m_size += item['size']
-                files.append(item)
+                items.append(item)
     LOGGER.info("Processed [{}/{}] uncached files in [{}] generating [{}] metadata".format(
             m_files - m_cached,
             metric["files"],
             print_time(time.time() - m_start_time),
-            print_size(sys.getsizeof(files))
+            print_size(sys.getsizeof(items))
         ))
 
     m_finished = True
     t.join()
-    return files
+    return items
 
 
 
@@ -342,16 +346,16 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[]):
     :return:
     """
     LOGGER.info("Started processing hashes for files from [{}] paths".format( len(paths)) )
-    global files
-    files = cached_files # note: adding cached files directly to files index
+    global FILES
+    FILES = cached_files # note: adding cached files directly to files index
     for path in paths:
-        global metric
-        metric = [x for x in metrics if x["path"] == path][0]
-        LOGGER.debug("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
-        meta = collect_files_in_path(path, hidden, metric, cached_files)
+        global METRIC
+        METRIC = [x for x in metrics if x["path"] == path][0]
+        LOGGER.debug("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, METRIC["files"], print_size(METRIC["size"])))
+        meta = collect_files_in_path(path, hidden, METRIC, cached_files)
         LOGGER.debug("Collected files in [%s] and built up [%s] of metadata" % (print_time(time.time() - m_start_time), print_size(sys.getsizeof(meta))))
-        files += meta
-    return files
+        FILES += meta
+    return FILES
 
 
 @timeit
