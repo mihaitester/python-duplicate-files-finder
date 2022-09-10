@@ -453,7 +453,9 @@ def menu():
     return arguments
 
 
-if __name__ == "__main__":
+# @timeit # important: adding this decorator drastically reduced performance - it seems like decorator nesting is a 10X performance overhead issue for python
+def main():
+    start_time = time.time()
     args = menu()
 
     # note: add a handler for the LOGGER, thus changing the format of the logs
@@ -476,7 +478,7 @@ if __name__ == "__main__":
     if args.cache:
         dump_cache(files)
 
-    duplicates = find_duplicates(files) # todo: figure out how to do in place changes, instead of storing all files metadata for processing
+    duplicates = find_duplicates(files)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
 
     if args.json:
         dump_duplicates(duplicates)
@@ -489,6 +491,10 @@ if __name__ == "__main__":
     #  because for large folders it can take a while and blank screen does not indicate enough feedback
     #
     #  need to pre-index files and folders to figure out size of files and distribution in subfolders, then start the indexing of metadata
+    LOGGER.info("Executed script in [{}]".format(print_time(time.time() - start_time)))
 
+
+if __name__ == "__main__":
+    main()
 
     pass  # used for debug breakpoint
