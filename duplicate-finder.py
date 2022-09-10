@@ -13,6 +13,7 @@ import logging
 import time
 import sys
 import threading
+import multiprocessing
 
 
 DATETIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
@@ -63,16 +64,19 @@ m_finished = False
 METRIC = {}
 FILES = []
 
+ETA = 2
+
 
 def print_collecting_ETA(timeout):
-    global m_start_time, m_popouts, m_files, METRIC, m_size
+    global m_start_time, m_popouts, m_files, METRIC, m_size, ETA
     if (time.time() - m_start_time) / timeout > m_popouts:
         m_popouts += 1
+        ETA = (METRIC["size"] - m_size) * (time.time() - m_start_time) / m_size
         LOGGER.info("Processed [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
                 m_files,
                 METRIC["files"],
                 print_time(time.time() - m_start_time),
-                print_time((METRIC["size"] - m_size) * (time.time() - m_start_time) / m_size),
+                print_time(ETA),
                 m_size / METRIC["size"] * 100,
                 print_size(sys.getsizeof(FILES))
             ))
@@ -81,12 +85,13 @@ def print_collecting_ETA(timeout):
 # need to have this global
 i = 0
 def print_duplicates_ETA(timeout):
-    global m_start_time, m_popouts, i, FILES
+    global m_start_time, m_popouts, i, FILES, ETA
     if (time.time() - m_start_time) / timeout > m_popouts:
         # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
         done_comparisons = int((i + 1) * len(FILES) / 2)
         total_comparisons = int(len(FILES) * (len(FILES) - 1) / 2)
         m_popouts += 1
+        ETA = (total_comparisons - done_comparisons) * (time.time() - m_start_time) / done_comparisons
         LOGGER.info(
             "Done [{}/{}] comparisons of [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
                 done_comparisons,
@@ -94,7 +99,7 @@ def print_duplicates_ETA(timeout):
                 i + 1,
                 len(FILES),
                 print_time(time.time() - m_start_time),
-                print_time((total_comparisons - done_comparisons) * (time.time() - m_start_time) / done_comparisons),
+                print_time(ETA),
                 # todo: fix this approximation, need to use comparisons as base number instead of files
                 done_comparisons / total_comparisons * 100))
 
@@ -113,6 +118,71 @@ def thread_print(function=print_collecting_ETA, timeout=60, micro=2):
             if m_finished:
                 return
             time.sleep(micro)
+
+
+# help: [ https://stackoverflow.com/questions/6893968/how-to-get-the-return-value-from-a-thread-in-python ] - this shows that `.result` will contain return value after `.join()`
+# help: [ https://superfastpython.com/thread-return-values/ ] - for some reason getting NoneType
+class ThreadWithResult(threading.Thread):
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
+        def function():
+            self.result = target(*args, **kwargs)
+        super().__init__(group=group, target=function, name=name, daemon=daemon)
+
+
+def thread_process_hashes(index, cached_files, timeout=60, micro=2):
+    global p_thread_count, p_threads, p_finished, p_lock
+    global m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # note: this is very important, update global variables so that printing threads see actual data
+
+    chunk = int( len(METRIC["items"]) / p_thread_count ) + 1 # add 1 file overlap so that all files get processed
+    lower_limit = chunk * index
+    upper_limit = chunk * (index + 1)
+    if upper_limit > len(METRIC["items"]):
+        upper_limit = len(METRIC["items"])
+
+    LOGGER.info("Thread [{}] started processing chunk [{},{}] of [{}] files with [{}] cached files".format(index, chunk * index, upper_limit, len(METRIC["items"]), len(cached_files)))
+
+    items = []
+    # important: [comment2] using a list of paths, instead of filter increased the processing time from `10min` to `16min`
+    for file in METRIC['items'][lower_limit:upper_limit]:
+        # # todo: this is the problem, need to construct the file list when collecting metrics, and then convert that list into chunks that get individually processed
+        # for fileref in filter: # note: using the fileref has some advantages, as the processing is way faster
+        # print_collecting_ETA()
+        # file = str(fileref)
+        if os.path.isfile(file):
+            m_files += 1
+            # print(file)
+            # todo: use multi-threading to speed up processing of files, split main list into [number of threads] chunks
+            # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
+            # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
+            # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
+            if len(cached_files) > 0:
+                if file not in [x["path"] for x in cached_files]:  # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
+                    LOGGER.debug("Found uncached file [{}]".format(file))
+                    item = {'path': file,
+                            'size': os.path.getsize(file),
+                            'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+                            'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
+                            }
+                    m_size += item['size']
+                    items.append(item)
+                else:
+                    LOGGER.debug("Skipped already indexed file [{}]".format(file))
+                    m_cached += 1  # this means file is already indexed so we skip rehashing it
+                    pass
+            else:
+                LOGGER.debug("Caching file [{}]".format(file))
+                item = {'path': file,
+                        'size': os.path.getsize(file),
+                        'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+                        'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
+                        # todo: figure out elevation for files that are in system folders does not work even if console is admin
+                        }
+                m_size += item['size']
+                items.append(item)
+
+    with p_lock:
+        p_finished[index] = True # signal thread finished, mainthread will collect its results and clear the thread
+    return items
 
 
 @timeit
@@ -258,11 +328,18 @@ def find_duplicates(items=[], m_pop_timeout=60):
         print_size(sum([x["size"] for x in items])),
         print_time(time.time() - m_start_time),
         print_size(sys.getsizeof(all_duplicates))))
+
     m_finished = True
     t.join()
+
     return all_duplicates
 
 
+# need these to be global
+p_thread_count = multiprocessing.cpu_count()
+p_threads = []
+p_lock = threading.Lock() # help: [ https://www.pythontutorial.net/python-concurrency/python-threading-lock/ ] - needed to protect `p_finished` from getting corrupted
+p_finished = []
 def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_pop_timeout=60):
     """
     help: [ https://stackoverflow.com/questions/237079/how-do-i-get-file-creation-and-modification-date-times ] - use the proper time flag
@@ -273,12 +350,12 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     :return:
     """
     global m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # note: this is very important, update global variables so that printing threads see actual data
-
+    global p_finished, p_threads, p_lock
     items = []
-    filter = pathlib.Path(path).glob('**/*')  # get hidden files
-    if hidden != True:
-        filter = glob.glob(os.path.join(path, "**/*"), recursive=True) + \
-                 glob.glob(os.path.join(path, ".**/*"), recursive=True)  # get recursively inside folders
+    # filter = pathlib.Path(path).glob('**/*')  # get hidden files
+    # if hidden != True:
+    #     filter = glob.glob(os.path.join(path, "**/*"), recursive=True) + \
+    #              glob.glob(os.path.join(path, ".**/*"), recursive=True)  # get recursively inside folders
 
     m_start_time = time.time()
     m_popouts = 0
@@ -291,42 +368,78 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     t.daemon = True
     t.start()
 
-    # important: [comment2] using a list of paths, instead of filter increased the processing time from `10min` to `16min`
-    for file in METRIC['items']:
-    # # todo: this is the problem, need to construct the file list when collecting metrics, and then convert that list into chunks that get individually processed
-    # for fileref in filter: # note: using the fileref has some advantages, as the processing is way faster
-        # print_collecting_ETA()
-        # file = str(fileref)
-        if os.path.isfile(file):
-            m_files += 1
-            # print(file)
-            # todo: use multi-threading to speed up processing of files, split main list into [number of threads] chunks
-            # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
-            # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
-            # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
-            if len(cached_files):
-                if file not in [ x["path"] for x in cached_files ]: # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
-                    LOGGER.debug("Found uncached file [{}]".format(file))
-                    item = {'path': file,
-                            'size': os.path.getsize(file),
-                            'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                            'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
-                            }
-                    m_size += item['size']
-                    items.append(item)
-                else:
-                    LOGGER.debug("Skipped already indexed file [{}]".format(file))
-                    m_cached += 1 # this means file is already indexed so we skip rehashing it
-                    pass
-            else:
-                LOGGER.debug("Caching file [{}]".format(file))
-                item = {'path': file,
-                        'size': os.path.getsize(file),
-                        'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                        'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
-                        }
-                m_size += item['size']
-                items.append(item)
+    # help: [ https://stackoverflow.com/questions/1006289/how-to-find-out-the-number-of-cpus-using-python ]
+    # todo: thread throttleing, need to figure out solution to throttleing and optimize the number of threads
+    # todo: thread dynamic loading, if a thread finishes processing, have another thread chunk its data again, and spread the load
+    p_finished = [False] * p_thread_count
+    p_threads = [None] * p_thread_count
+    # for i in range(p_thread_count):
+    #     p_finished.append(False)
+
+    for i in range(p_thread_count):
+        # with p_lock:
+        #     p_finished[i] = False
+        p = ThreadWithResult(target=thread_process_hashes, args=[i, cached_files, m_pop_timeout])  # pass the timeout on start of thread
+        p.daemon = True
+        p_threads[i] = p
+        p.start()
+
+    # note: while not finished processing, sleep for a while and then check again if threads finished
+    # todo: adapt the sleep timeout based on ETA reported by each thread, that way remove aggressive pooling which adds overhead
+    while False in p_finished:
+        # timeout = int(ETA / 2)
+        # if timeout > m_pop_timeout:
+        #     timeout = m_pop_timeout
+        # if timeout < 2:
+        #     timeout = 2
+        # # print("Sleeping ... [{}]".format( timeout ))
+        # time.sleep( timeout )
+        LOGGER.debug("Finished threads: [{}]".format(p_finished))
+        time.sleep(5)
+        for i in range(len(p_threads)):
+            if p_threads[i] and p_finished[i]:
+
+                p_threads[i].join()
+                items += p_threads[i].result
+                p_threads[i] = None
+
+    # # important: [comment2] using a list of paths, instead of filter increased the processing time from `10min` to `16min`
+    # for file in METRIC['items']:
+    # # # todo: this is the problem, need to construct the file list when collecting metrics, and then convert that list into chunks that get individually processed
+    # # for fileref in filter: # note: using the fileref has some advantages, as the processing is way faster
+    #     # print_collecting_ETA()
+    #     # file = str(fileref)
+    #     if os.path.isfile(file):
+    #         m_files += 1
+    #         # print(file)
+    #         # todo: use multi-threading to speed up processing of files, split main list into [number of threads] chunks
+    #         # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
+    #         # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
+    #         # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
+    #         if len(cached_files):
+    #             if file not in [ x["path"] for x in cached_files ]: # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
+    #                 LOGGER.debug("Found uncached file [{}]".format(file))
+    #                 item = {'path': file,
+    #                         'size': os.path.getsize(file),
+    #                         'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+    #                         'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
+    #                         }
+    #                 m_size += item['size']
+    #                 items.append(item)
+    #             else:
+    #                 LOGGER.debug("Skipped already indexed file [{}]".format(file))
+    #                 m_cached += 1 # this means file is already indexed so we skip rehashing it
+    #                 pass
+    #         else:
+    #             LOGGER.debug("Caching file [{}]".format(file))
+    #             item = {'path': file,
+    #                     'size': os.path.getsize(file),
+    #                     'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+    #                     'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
+    #                     }
+    #             m_size += item['size']
+    #             items.append(item)
+
     LOGGER.info("Processed [{}/{}] uncached files in [{}] generating [{}] metadata".format(
             m_files - m_cached,
             metric["files"],
@@ -336,6 +449,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
 
     m_finished = True
     t.join()
+
     return items
 
 
