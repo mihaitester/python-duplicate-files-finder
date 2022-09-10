@@ -268,7 +268,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
     :param files: list of files that have been pre-cached, should improve performance
     :return:
     """
-    global files, m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # need this for the printing thread
+    global m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # need this for the printing thread
     files = []
     filter = pathlib.Path(path).glob('**/*')  # get hidden files
     if hidden != True:
@@ -332,7 +332,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
 
 
 
-
+@timeit
 def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[]):
     """
     :param paths:
@@ -342,6 +342,7 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[]):
     :return:
     """
     LOGGER.info("Started processing hashes for files from [{}] paths".format( len(paths)) )
+    global files
     files = cached_files # note: adding cached files directly to files index
     for path in paths:
         global metric
@@ -463,6 +464,8 @@ if __name__ == "__main__":
         cached_files = load_cache(args.kache)
 
     metrics = collect_all_metrics(args.paths, args.hidden)
+    # todo: implement progressive threading, meaning interrupt single thread and spawn more threads over the remaining data as time progresses
+    # todo: implement threading for `collect_all_files` and for `find_duplicates` - which should speed up things
     files = collect_all_files(args.paths, args.hidden, metrics, cached_files)
 
     if args.cache:
