@@ -394,6 +394,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], m_p
         #     timeout = 2
         # # print("Sleeping ... [{}]".format( timeout ))
         # time.sleep( timeout )
+        # todo: ideally track status of threads across time, would help a lot to print changes in this array when they happen
         LOGGER.debug("Finished threads: [{}]".format(p_finished))
         time.sleep(5)
         for i in range(len(p_threads)):
