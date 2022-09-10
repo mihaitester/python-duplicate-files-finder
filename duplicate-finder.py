@@ -190,6 +190,7 @@ def thread_process_duplicates(index, items, timeout=60, micro=2):
 
 
 # note: added threading and overall result increased from `10min` to `11min` - interesting result, perhaps threading of hashing works better on large files, whereas serial execution is optimal on small files
+# todo: randomize the list of items such that all threads get to process large and small files, or have a redistribution algorithm in place when a thread finishes, if precomputing the list of files to include size and have it sorted in decreasing order
 def thread_process_hashes(index, cached_files, timeout=60, micro=2):
     global p_thread_count, p_threads, p_finished, p_lock
     global m_popouts, m_files, m_size, m_cached, m_finished # note: this is very important, update global variables so that printing threads see actual data
