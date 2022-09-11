@@ -448,15 +448,12 @@ def find_duplicates(items=[], m_pop_timeout=60):
     # help: [ https://stackoverflow.com/questions/1006289/how-to-find-out-the-number-of-cpus-using-python ]
     # todo: thread throttleing, need to figure out solution to throttleing and optimize the number of threads
     # todo: thread dynamic loading, if a thread finishes processing, have another thread chunk its data again, and spread the load
-    p_finished = [False] * p_thread_count
-    p_threads = [None] * p_thread_count
-    p_progress = [0] * p_thread_count
-    # for i in range(p_thread_count):
-    #     p_finished.append(False)
+    with p_lock:
+        p_finished = [False] * p_thread_count
+        p_threads = [None] * p_thread_count
+        p_progress = [0] * p_thread_count
 
     for i in range(p_thread_count):
-        # with p_lock:
-        #     p_finished[i] = False
         # todo: figure out if chunking is possible, as passing items to each thread creates duplicated lists which occupy-RAM and slow down processor, despite being used as read-only resource
         p = ThreadWithResult(target=thread_process_duplicates, args=[i, items, m_pop_timeout])
         p.daemon = True
@@ -534,6 +531,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
     """
     global m_start_time, m_popouts, m_files, m_size, m_cached, m_finished # note: this is very important, update global variables so that printing threads see actual data
     global p_finished, p_threads, p_lock
+
     items = []
     # filter = pathlib.Path(path).glob('**/*')  # get hidden files
     # if hidden != True:
@@ -554,14 +552,11 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
     # help: [ https://stackoverflow.com/questions/1006289/how-to-find-out-the-number-of-cpus-using-python ]
     # todo: thread throttleing, need to figure out solution to throttleing and optimize the number of threads
     # todo: thread dynamic loading, if a thread finishes processing, have another thread chunk its data again, and spread the load
-    p_finished = [False] * p_thread_count
-    p_threads = [None] * p_thread_count
-    # for i in range(p_thread_count):
-    #     p_finished.append(False)
+    with p_lock:
+        p_finished = [False] * p_thread_count
+        p_threads = [None] * p_thread_count
 
     for i in range(p_thread_count):
-        # with p_lock:
-        #     p_finished[i] = False
         p = ThreadWithResult(target=thread_process_hashes, args=[i, cached_files, cached_paths, m_pop_timeout])  # pass the timeout on start of thread
         p.daemon = True
         p_threads[i] = p
@@ -635,7 +630,6 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
     t.join()
 
     return items
-
 
 
 @timeit
@@ -740,6 +734,8 @@ def menu():
     # todo
     # parser.add_argument('-r', '--reverse', action='store_true', required=False,
     #                     help='flag indicating that a symbolic links should be replaced with copies of the original file, useful when restoring a backup')
+    # todo
+    # parser.add_argument('-t', '--threading', action='store_true', required=False, help='flag indicating if the script should use multi-threading capability, this can add overhead instead of speed things up')
     parser.add_argument('-e', '--erase', action='store_true', required=False,
                         help='flag indicating that duplicate files will be erased')
     parser.add_argument('-n', '--hidden', action='store_true', required=False,
