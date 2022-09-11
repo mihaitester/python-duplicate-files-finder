@@ -149,10 +149,11 @@ def thread_process_duplicates(index, items, timeout=60, micro=2):
     m_start_time = time.time()
 
     duplicates = {}
+    # duplicated_paths = []
 
     chunk = int(len(items) / p_thread_count) + 1  # add 1 file overlap so that all files get processed
     lower_limit = chunk * index
-    upper_limit = chunk * (index + 1)
+    upper_limit = chunk * (index + 1) # - 1 # note: remove the overlapping sections
     if upper_limit > len(items):
         upper_limit = len(items)
 
@@ -162,22 +163,26 @@ def thread_process_duplicates(index, items, timeout=60, micro=2):
 
     # todo: BUG: duplicates will be reinserted in the list of duplicates, need to check if a file was already found as duplicated, then it should not be added to the list again
     # for i in range(len(items) - 1):
-    for i in range(lower_limit, upper_limit - 1):
-        # print_duplicates_ETA()
+    for i in range(lower_limit, upper_limit):
         with p_lock:
+            # print_duplicates_ETA()
             p_progress[index] = i
         # todo: optimize search, by comparing only files that have the same size, which would run faster
         # if items[i] not in all_duplicates:
-            # duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
+        # duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
         duplicates_for_file = []  # [comment1]: consider the 0 index of each list as the original file
         # todo: because this is incremental select search, first threads have a bigger chunk to process than subsequent threads, hence need to either change this search, or redistribute workload to finishing threads - dynamic loading for thread pooling
-        # for j in range(i+1, len(items)):  # note: if already marked duplicates its pointless to backcheck files that were processed already
         if items[i]["size"] != 0:
             for j in range(len(items)): # note: going through all the elements will create a list of duplicates for each file
+            # for j in range(i+1, len(items)):  # note: [comment3] if already marked duplicates its pointless to backcheck files that were processed already
                 # print("{} - {}".format(i,j))
                 if i != j: # important: because of using multi-threading the first thread to inject a line of duplicates wins
-                    if items[i]["size"] < items[j]["size"]:
+                    if items[i]["size"] < items[j]["size"]:  # note: [comment3] thanks to presorting of items, can skip comparisons that eat time, in this case sorted list increasing
+                    # if items[i]["size"] < items[j]["size"] or items[i]["size"] > items[j]["size"]: # note: [comment3] thanks to presorting of items, can skip comparisons that eat time
                         break
+                    if items[i]["size"] > items[j]["size"]:  # note: [comment3] thanks to presorting of items, can skip comparisons that eat time, in this case sorted list increasing
+                    # if items[i]["size"] < items[j]["size"] or items[i]["size"] > items[j]["size"]: # note: [comment3] thanks to presorting of items, can skip comparisons that eat time
+                        continue
                     if items[i]["size"] == items[j]["size"]:
                         if items[i]["checksum"] == items[j]["checksum"]:
                             LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
@@ -189,18 +194,28 @@ def thread_process_duplicates(index, items, timeout=60, micro=2):
         # if len(duplicates_for_file) > 1:
         if len(duplicates_for_file) > 0:
             LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
-            duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
-            # all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
-            with p_lock:
-                obj = {items[i]:duplicates_for_file}
-                duplicates.update(obj)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
+            # duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
+
+            # consistency check, because it seems files could have been doubly inserted in the list of files
+            for k in range(len(duplicates_for_file) - 1, 0, -1):
+                if duplicates_for_file[k]["path"] == items[i]["path"]:
+                    duplicates_for_file.pop(k)
+
+            if len(duplicates_for_file) > 0:
+                with p_lock:
+                    # duplicates.append(duplicates_for_file)
+                    duplicates.update({items[i]["path"]:duplicates_for_file}) # observation: execution time drastically increased when working with `dict` instead of `list`, apparently each `dict.update` slows down dramatically the script, time increased from `40min` to over `2hours`
+                    # all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
+                    # obj = {items[i]:duplicates_for_file}
+                    # duplicates.update(obj)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
             # with p_lock:
-            m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+                m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
 
     with p_lock:
         p_finished[index] = True
 
-    LOGGER.info("Thread [{}] finished processing chunk [{},{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, lower_limit, upper_limit, len(all_duplicates), sum([len(x) - 1 for x in all_duplicates]), print_time(time.time() - m_start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates]) if len(all_duplicates) > 0 else 0)))
+    # LOGGER.info("Thread [{}] finished processing chunk [{},{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, lower_limit, upper_limit, len(all_duplicates), sum([len(x) - 1 for x in all_duplicates]), print_time(time.time() - m_start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates]) if len(all_duplicates) > 0 else 0)))
+    # LOGGER.info("Thread [{}] finished processing chunk [{},{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, lower_limit, upper_limit, len(all_duplicates.keys()), sum([len(x) - 1 for x in all_duplicates.keys()]), print_time(time.time() - m_start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates.keys()]) if len(all_duplicates.keys()) > 0 else 0)))
 
     return duplicates
 
@@ -215,7 +230,7 @@ def thread_process_hashes(index, cached_files, cached_paths, timeout=60, micro=2
 
     chunk = int( len(METRIC["items"]) / p_thread_count ) + 1 # add 1 file overlap so that all files get processed
     lower_limit = chunk * index
-    upper_limit = chunk * (index + 1)
+    upper_limit = chunk * (index + 1) # - 1 # todo: remove overlap of files that have same path
     if upper_limit > len(METRIC["items"]):
         upper_limit = len(METRIC["items"])
 
@@ -431,6 +446,7 @@ def find_duplicates(items=[], m_pop_timeout=60):
     LOGGER.info("Started searching for duplicates among [{}] indexed files".format( len(items)) )
 
     all_duplicates = {}
+    # all_duplicates = []
 
     m_start_time = time.time()
     m_duplicates = 0
@@ -457,7 +473,8 @@ def find_duplicates(items=[], m_pop_timeout=60):
         # todo: figure out if chunking is possible, as passing items to each thread creates duplicated lists which occupy-RAM and slow down processor, despite being used as read-only resource
         p = ThreadWithResult(target=thread_process_duplicates, args=[i, items, m_pop_timeout])
         p.daemon = True
-        p_threads[i] = p
+        with p_lock:
+            p_threads[i] = p
         p.start()
 
     # note: while not finished processing, sleep for a while and then check again if threads finished
@@ -479,7 +496,8 @@ def find_duplicates(items=[], m_pop_timeout=60):
                 p_threads[i].join()
                 with p_lock:
                     all_duplicates.update(p_threads[i].result) # todo: figure out if chunking algorithm works for this because its wrongfully identifying `92K` duplicates for `45K` total files
-                p_threads[i] = None
+                    # all_duplicates += p_threads[i].result # todo: figure out if chunking algorithm works for this because its wrongfully identifying `92K` duplicates for `45K` total files
+                    p_threads[i] = None
 
     # for i in range(len(items) - 1):
     #     # print_duplicates_ETA()
@@ -559,7 +577,8 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
     for i in range(p_thread_count):
         p = ThreadWithResult(target=thread_process_hashes, args=[i, cached_files, cached_paths, m_pop_timeout])  # pass the timeout on start of thread
         p.daemon = True
-        p_threads[i] = p
+        with p_lock:
+            p_threads[i] = p
         p.start()
 
     # note: while not finished processing, sleep for a while and then check again if threads finished
@@ -580,7 +599,8 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                 LOGGER.debug("Finished threads: [{}]".format(p_finished))
                 p_threads[i].join()
                 items += p_threads[i].result
-                p_threads[i] = None
+                with p_lock:
+                    p_threads[i] = None
 
     # # important: [comment2] using a list of paths, instead of filter increased the processing time from `10min` to `16min`
     # for file in METRIC['items']:
@@ -651,6 +671,7 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[], cache
         meta = collect_files_in_path(path, hidden, METRIC, cached_files, cached_paths)
         LOGGER.debug("Collected files in [%s] and built up [%s] of metadata" % (print_time(time.time() - m_start_time), print_size(sys.getsizeof(meta))))
         FILES += meta
+    FILES.sort(key=lambda x: x["size"]) # note: [comment3] very important to get files sorted
     return FILES
 
 
