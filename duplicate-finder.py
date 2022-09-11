@@ -67,6 +67,7 @@ FILES = []
 ETA = 2
 
 
+# todo: collect size of the metadata generated from each thread and properly display all the metadata generated
 def print_collecting_ETA(timeout):
     global m_start_time, m_popouts, m_files, METRIC, m_size, ETA
     if (time.time() - m_start_time) / timeout > m_popouts:
@@ -83,7 +84,7 @@ def print_collecting_ETA(timeout):
 
 
 # need to have this global
-i = 0
+all_duplicates = {}
 p_progress = []
 def print_duplicates_ETA(timeout):
     # todo: change how the ETA is calculated, use an average mean of the chunks processed so far by each thread - currently, depeding on thread different estimates displayed
@@ -142,7 +143,7 @@ class ThreadWithResult(threading.Thread):
 
 # note: this parallelization increased the execution time from `11min` to `16min`, so chunking bellow a specific number of files actually introduces more overhead instead of speeding up processing
 def thread_process_duplicates(index, items, timeout=60, micro=2):
-    global p_thread_count, p_threads, p_finished, p_lock, p_progress
+    global p_thread_count, p_threads, p_finished, p_lock, p_progress, all_duplicates
     global FILES, m_finished, m_popouts, m_duplicates # note: this is very important, update the global variables so that threads see the actual data
 
     m_start_time = time.time()
@@ -155,7 +156,7 @@ def thread_process_duplicates(index, items, timeout=60, micro=2):
 
     LOGGER.info("Thread [{}] started processing chunk [{},{}] of [{}] files".format(index, chunk * index, upper_limit, len(items)))
 
-    all_duplicates = []
+    # all_duplicates = []
 
     # todo: BUG: duplicates will be reinserted in the list of duplicates, need to check if a file was already found as duplicated, then it should not be added to the list again
     # for i in range(len(items) - 1):
@@ -164,21 +165,32 @@ def thread_process_duplicates(index, items, timeout=60, micro=2):
         with p_lock:
             p_progress[index] = i
         # todo: optimize search, by comparing only files that have the same size, which would run faster
-        duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
+        # if items[i] not in all_duplicates:
+            # duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
+        duplicates_for_file = []  # [comment1]: consider the 0 index of each list as the original file
         # todo: because this is incremental select search, first threads have a bigger chunk to process than subsequent threads, hence need to either change this search, or redistribute workload to finishing threads - dynamic loading for thread pooling
-        for j in range(i + 1, len(items)):
-            # print("{} - {}".format(i,j))
-            if items[i]["size"] == items[j]["size"] and items[i]["checksum"] == items[j]["checksum"] and items[i]["size"] != 0:
-                LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
-                duplicates_for_file.append(items[j])
-            else:
-                if items[i]["size"] == 0:
-                    # todo: figure out what to do with  having size 0, because they can pollute disks as well
-                    LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
-        if len(duplicates_for_file) > 1:
+        # for j in range(i+1, len(items)):  # note: if already marked duplicates its pointless to backcheck files that were processed already
+        if items[i]["size"] != 0:
+            for j in range(len(items)): # note: going through all the elements will create a list of duplicates for each file
+                # print("{} - {}".format(i,j))
+                if i != j: # important: because of using multi-threading the first thread to inject a line of duplicates wins
+                    if items[i]["size"] < items[j]["size"]:
+                        break
+                    if items[i]["size"] == items[j]["size"]:
+                        if items[i]["checksum"] == items[j]["checksum"]:
+                            LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
+                            duplicates_for_file.append(items[j])
+        else:
+            # if items[i]["size"] == 0:
+            # todo: figure out what to do with  having size 0, because they can pollute disks as well
+            LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
+        # if len(duplicates_for_file) > 1:
+        if len(duplicates_for_file) > 0:
             LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
             duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
-            all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
+            # all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
+            with p_lock:
+                all_duplicates.update({items[i]:duplicates_for_file})  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
             # with p_lock:
             m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
 
@@ -299,7 +311,8 @@ def load_cache(cache_file=""):
 def dump_duplicates(items=[]):
     """
     help: [ https://appdividend.com/2022/06/02/how-to-convert-python-list-to-json/ ] - dumping objects to json
-    :param items: [[original_file, duplicate1, duplicate2, ...], ...]
+    # :param items: [[original_file, duplicate1, duplicate2, ...], ...]
+    :param items: {original_file: [duplicate1, duplicate2, ...], ...}
     :return:
     """
     duplicates_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
@@ -354,17 +367,19 @@ def find_duplicates(items=[], m_pop_timeout=60):
     :param items: [{path:str,size:int,checksum:str}, ...]
     :return: [[original_file, duplicate1, duplicate2, ...], ...]
     """
-    global m_start_time, FILES, m_finished, m_popouts, m_duplicates, p_progress, p_finished # note: this is very important, update the global variables so that threads see the actual data
+    global m_start_time, FILES, m_finished, m_popouts, m_duplicates, p_progress, p_finished, all_duplicates # note: this is very important, update the global variables so that threads see the actual data
 
     LOGGER.info("Started searching for duplicates among [{}] indexed files".format( len(items)) )
 
-    all_duplicates = []
+    all_duplicates = {}
 
     m_start_time = time.time()
     m_duplicates = 0
-    items.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
     m_processed = 0
     m_popouts = 0
+
+    # important: without this presorting, cannot use the optimization of skipping comparisons in `thread_process_duplicates`
+    items.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
 
     m_finished = False
     t = threading.Thread(target=thread_print, args=[print_duplicates_ETA, m_pop_timeout])  # pass the timeout on start of thread
