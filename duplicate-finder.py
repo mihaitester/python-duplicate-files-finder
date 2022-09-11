@@ -823,9 +823,6 @@ def main():
     preserve_files = copy.deepcopy(files)
     zero_sized_files = [ x for x in files if x["size"] == 0 ] # todo: need to deal somehow with these files that pollute disks
 
-    global PROCESSED
-    PROCESSED = [ False for x in range(len(FILES))]
-
     # note: duplicates will destructively interfere with FILES and will
     duplicates = find_duplicates(files, args.parallelize)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
 
