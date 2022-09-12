@@ -56,63 +56,77 @@ def timeit(f):
 
 
 # todo: collect size of the metadata generated from each thread and properly display all the metadata generated
-def print_collecting_ETA(start_time, timeout):
+def print_collecting_ETA(parallelize, start_time, timeout):
+    # note: this function does not depend on PARALLELIZE FLAG
     global PRINT_POPUP_COUNT, PRINT_ETA
-    global THREAD_FILES_PROCESSED_COUNT, THREAD_FILES_PROCESSED_SIZE
-    global METRIC
+    global PRINT_FILES_PROCESSED_COUNT, PRINT_FILES_PROCESSED_SIZE
+    global METRIC, FILES
     if (time.time() - start_time) / timeout > PRINT_POPUP_COUNT:
         PRINT_POPUP_COUNT += 1
-        PRINT_ETA = (METRIC["size"] - THREAD_FILES_PROCESSED_SIZE) * (time.time() - start_time) / THREAD_FILES_PROCESSED_SIZE
+        PRINT_ETA = (METRIC["size"] - PRINT_FILES_PROCESSED_SIZE) * (time.time() - start_time) / PRINT_FILES_PROCESSED_SIZE
         LOGGER.info("Processed [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
-                THREAD_FILES_PROCESSED_COUNT,
+                PRINT_FILES_PROCESSED_COUNT,
                 METRIC["files"],
                 print_time(time.time() - start_time),
                 print_time(PRINT_ETA),
-                THREAD_FILES_PROCESSED_SIZE / METRIC["size"] * 100,
+                PRINT_FILES_PROCESSED_SIZE / METRIC["size"] * 100,
                 print_size(sys.getsizeof(FILES))
             ))
 
 
-def print_duplicates_ETA(start_time, timeout):
+def print_duplicates_ETA(parallelize, start_time, timeout):
     # todo: change how the ETA is calculated, use an average mean of the chunks processed so far by each thread - currently, depeding on thread different estimates displayed
     global PRINT_POPUP_COUNT, PRINT_ETA
-    global THREAD_PROGRESS
     global FILES
+
     if (time.time() - start_time) / timeout > PRINT_POPUP_COUNT:
         PRINT_POPUP_COUNT += 1
-        # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
-        done_comparisons = []
-        total_comparisons = []
-        lower_limit = []
-        upper_limit = []
-        chunk = len(FILES) / THREAD_COUNT
-        for i in range(THREAD_COUNT):
-            # lower_limit.append(chunk * i)
-            # upper_limit.append(chunk * (i+1))
-            # done_comparisons.append( int((p_progress[i] - lower_limit[i]) * (p_progress[i] - lower_limit[i] - 1) / 2) )
-            # total_comparisons.append( int((upper_limit[i] - lower_limit[i]) * (upper_limit[i] - lower_limit[i] - 1) / 2) )
-            lower_limit.append(i)
-            upper_limit.append(len(FILES) - (len(FILES) % THREAD_COUNT) )
-            done_comparisons.append(int((THREAD_PROGRESS[i] - lower_limit[i]) * (THREAD_PROGRESS[i] - lower_limit[i] - 1) / 2))
-            total_comparisons.append(int((upper_limit[i] - lower_limit[i]) * (upper_limit[i] - lower_limit[i] - 1) / 2))
-        PRINT_ETA = (sum(total_comparisons) - sum(done_comparisons)) * (time.time() - start_time) / sum(done_comparisons)
-        LOGGER.info(
-            "Done [{}/{}] comparisons of [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
-                sum(done_comparisons),
-                sum(total_comparisons),
-                int((sum(THREAD_PROGRESS) - sum(lower_limit)) / THREAD_COUNT),
-                len(FILES),
-                print_time(time.time() - start_time),
-                print_time(PRINT_ETA),
-                # todo: fix this approximation, need to use comparisons as base number instead of files
-                sum(done_comparisons) / sum(total_comparisons) * 100))
+        if parallelize:
+            global THREAD_PROGRESS
+            # print("Compared [{}/{}] files in [{}] ETA: [{}]".format(i+1, len(files), print_time(time.time()-m_start_time), print_time( ( len(files)-i ) * (time.time() - m_start_time) / len(files) )))
+            done_comparisons = []
+            total_comparisons = []
+            lower_limit = []
+            upper_limit = []
+            chunk = len(FILES) / THREAD_COUNT
+            for i in range(THREAD_COUNT):
+                lower_limit.append(i)
+                upper_limit.append(len(FILES) - (len(FILES) % THREAD_COUNT) )
+                done_comparisons.append(int((THREAD_PROGRESS[i] - lower_limit[i]) * (THREAD_PROGRESS[i] - lower_limit[i] - 1) / 2))
+                total_comparisons.append(int((upper_limit[i] - lower_limit[i]) * (upper_limit[i] - lower_limit[i] - 1) / 2))
+            PRINT_ETA = (sum(total_comparisons) - sum(done_comparisons)) * (time.time() - start_time) / sum(done_comparisons)
+            LOGGER.info(
+                "Done [{}/{}] comparisons of [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
+                    sum(done_comparisons),
+                    sum(total_comparisons),
+                    int((sum(THREAD_PROGRESS) - sum(lower_limit)) / THREAD_COUNT),
+                    len(FILES),
+                    print_time(time.time() - start_time),
+                    print_time(PRINT_ETA),
+                    # todo: fix this approximation, need to use comparisons as base number instead of files
+                    sum(done_comparisons) / sum(total_comparisons) * 100))
+        else:
+            global PRINT_PROGRESS
+            PRINT_ETA = (len(FILES) - PRINT_PROGRESS) * (time.time() - start_time) / PRINT_PROGRESS
+            LOGGER.info(
+                "Compared [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] comparisons".format(
+                    PRINT_PROGRESS,
+                    len(FILES),
+                    print_time(time.time() - start_time),
+                    print_time(PRINT_ETA),
+                    # todo: fix this approximation, need to use comparisons as base number instead of files
+                    PRINT_PROGRESS / len(FILES) * 100))
 
 
 # note: because there is a single printing thread there is no need for the `threading.Lock()`, also `thread_print` function is always started from `MainThread`
 PRINT_FINISHED = False
 PRINT_POPUP_COUNT = 0
 PRINT_ETA = 2
-def thread_print(function=print_collecting_ETA, start_time=time.time(), timeout=60, micro=2):
+PRINT_FILES_PROCESSED_SIZE = 1 # note: avoid division by 0
+PRINT_FILES_PROCESSED_COUNT = 0
+PRINT_FILES_CACHED_SKIPPED = 0
+PRINT_PROGRESS = 0
+def thread_print(function=print_collecting_ETA, paralellize=True, start_time=time.time(), timeout=60, micro=2):
     # help: [ https://stackoverflow.com/questions/8600161/executing-periodic-actions ] - every timeout print out current progress
     # help: [ https://superfastpython.com/thread-share-variables/ ] - how to share data with the printing thread
     # help: [ https://docs.python.org/3/library/threading.html ] - basics of python threading
@@ -120,7 +134,7 @@ def thread_print(function=print_collecting_ETA, start_time=time.time(), timeout=
     # help: [ https://www.geeksforgeeks.org/passing-function-as-an-argument-in-python/ ] - sending print function as parameter
     time.sleep(micro) # note: delay the start of the printing thread such that some data gets processed and better estimates are shown
     while True:
-        function(start_time, timeout)
+        function(paralellize, start_time, timeout)
         # note: instead of waiting the full timeout use micro sleeps and check if mainthread finished in the meantime
         for i in range(int(timeout/micro)):
             if PRINT_FINISHED:
@@ -136,19 +150,11 @@ THREAD_S = []
 THREAD_COUNT = multiprocessing.cpu_count()
 THREAD_LOCK = threading.Lock() # help: [ https://www.pythontutorial.net/python-concurrency/python-threading-lock/ ] - needed to protect `THREAD_FINISHED` from getting corrupted
 
-THREAD_FILES_PROCESSED_COUNT = 0
-THREAD_FILES_PROCESSED_SIZE = 1 # note: avoid division by 0
-THREAD_FILES_CACHED_SKIPPED = 0
 THREAD_PROGRESS = []
 THREAD_FILES_PROCESSED = []
-THREAD_FILES_DUPLICATES = 0
-
-# need to have this global
+THREAD_FILES_DUPLICATES = []
 METRIC = {}
 FILES = []
-
-# need to have this global
-all_duplicates = {}
 class ThreadWithResult(threading.Thread):
     # help: [ https://stackoverflow.com/questions/6893968/how-to-get-the-return-value-from-a-thread-in-python ] - this shows that `.result` will contain return value after `.join()`
     # help: [ https://superfastpython.com/thread-return-values/ ] - for some reason getting NoneType
@@ -176,9 +182,7 @@ def thread_process_duplicates(index, items, start_time=time.time(), timeout=60, 
     # if upper_limit > len(FILES):
     #     upper_limit = len(FILES)
 
-    # LOGGER.info("Thread [{}] started processing chunk [{},{}] of [{}] files".format(index, chunk * index, upper_limit, len(items)))
-
-    # all_duplicates = []
+    LOGGER.info("Thread [{}] started processing chunk [{}k+{}] of [{}] files".format(index, THREAD_COUNT, index, len(items)))
 
     # todo: BUG: duplicates will be reinserted in the list of duplicates, need to check if a file was already found as duplicated, then it should not be added to the list again
     # for i in range(len(items) - 1):
@@ -243,26 +247,24 @@ def thread_process_duplicates(index, items, start_time=time.time(), timeout=60, 
 
                 with THREAD_LOCK:
                     for k in range(len(duplicates_indexes)):
+                        THREAD_FILES_PROCESSED[duplicates_indexes[k]] = True
                         # FILES.pop(duplicates_indexes[k])
                         # FILES[duplicates_indexes[k]]["duplicated"] = FILES[i]
                         # FILES[duplicates_indexes[k]] = None
-                        THREAD_FILES_PROCESSED[duplicates_indexes[k]] = True
                     THREAD_FILES_PROCESSED[i] = True
                         # duplicates.update({items[i]["path"]:duplicates_for_file}) # observation: execution time drastically increased when working with `dict` instead of `list`, apparently each `dict.update` slows down dramatically the script, time increased from `40min` to over `2hours`
                         # all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
                         # obj = {items[i]:duplicates_for_file}
                         # duplicates.update(obj)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
-                # with p_lock:
-                    THREAD_FILES_DUPLICATES += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
-                    end = len(FILES)
-
+                    THREAD_FILES_DUPLICATES[index] += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+        end = len(FILES)
         i += THREAD_COUNT
 
     with THREAD_LOCK:
         THREAD_FINISHED[index] = True
 
     # LOGGER.info("Thread [{}] finished processing chunk [{},{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, lower_limit, upper_limit, len(all_duplicates), sum([len(x) - 1 for x in all_duplicates]), print_time(time.time() - m_start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates]) if len(all_duplicates) > 0 else 0)))
-    # LOGGER.info("Thread [{}] finished processing chunk [{},{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, lower_limit, upper_limit, len(all_duplicates.keys()), sum([len(x) - 1 for x in all_duplicates.keys()]), print_time(time.time() - m_start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates.keys()]) if len(all_duplicates.keys()) > 0 else 0)))
+    LOGGER.info("Thread [{}] finished processing chunk [{}k+{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, THREAD_COUNT, index, len(duplicates), sum([len(x) - 1 for x in duplicates]), print_time(time.time() - start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in duplicates]) if len(duplicates) > 0 else 0)))
 
     return duplicates
 
@@ -271,7 +273,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
     # note: added threading and overall result increased from `10min` to `11min` - interesting result, perhaps threading of hashing works better on large files, whereas serial execution is optimal on small files
     # todo: randomize the list of items such that all threads get to process large and small files, or have a redistribution algorithm in place when a thread finishes, if precomputing the list of files to include size and have it sorted in decreasing order
     global THREAD_FINISHED, THREAD_S, THREAD_COUNT, THREAD_LOCK
-    global THREAD_FILES_PROCESSED_COUNT, THREAD_FILES_PROCESSED_SIZE, THREAD_FILES_CACHED_SKIPPED
+    global PRINT_FILES_PROCESSED_COUNT, PRINT_FILES_PROCESSED_SIZE, PRINT_FILES_CACHED_SKIPPED
 
     chunk = int( len(METRIC["items"]) / THREAD_COUNT ) + 1 # add 1 file overlap so that all files get processed
     lower_limit = chunk * index
@@ -290,7 +292,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
             # print_collecting_ETA()
             # file = str(fileref)
             if os.path.isfile(file):
-                THREAD_FILES_PROCESSED_COUNT += 1
+                PRINT_FILES_PROCESSED_COUNT += 1
                 # print(file)
                 # todo: use multi-threading to speed up processing of files, split main list into [number of threads] chunks
                 # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
@@ -304,11 +306,11 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                             'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
                             'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
                             }
-                    THREAD_FILES_PROCESSED_SIZE += item['size']
+                    PRINT_FILES_PROCESSED_SIZE += item['size']
                     items.append(item)
                 else:
                     LOGGER.debug("Skipped already indexed file [{}]".format(file))
-                    THREAD_FILES_CACHED_SKIPPED += 1  # this means file is already indexed so we skip rehashing it
+                    PRINT_FILES_CACHED_SKIPPED += 1  # this means file is already indexed so we skip rehashing it
                     pass
     else:
         for file in METRIC['items'][lower_limit:upper_limit]:
@@ -317,7 +319,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
             # print_collecting_ETA()
             # file = str(fileref)
             if os.path.isfile(file):
-                THREAD_FILES_PROCESSED_COUNT += 1
+                PRINT_FILES_PROCESSED_COUNT += 1
                 # print(file)
                 # todo: use multi-threading to speed up processing of files, split main list into [number of threads] chunks
                 # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
@@ -330,7 +332,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                         'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         }
-                THREAD_FILES_PROCESSED_SIZE += item['size']
+                PRINT_FILES_PROCESSED_SIZE += item['size']
                 items.append(item)
 
     LOGGER.info(
@@ -455,26 +457,22 @@ def find_duplicates(items=[], parallelize=True):
     # note: start the printing thread, could put it in a wrapper, but nesting wrappers adds performance overhead
     global PRINT_FINISHED
     PRINT_FINISHED = False
-    print_thread = threading.Thread(target=thread_print, args=[print_duplicates_ETA])
+    print_thread = threading.Thread(target=thread_print, args=[print_duplicates_ETA, parallelize])
     print_thread.daemon = True
     print_thread.start()
 
-    global THREAD_FINISHED, THREAD_S, THREAD_PROGRESS, THREAD_COUNT, THREAD_LOCK
-    global THREAD_FILES_PROCESSED
-    global FILES
-
     LOGGER.info("Started searching for duplicates among [{}] indexed files".format( len(items)) )
 
-    # all_duplicates = {}
     all_duplicates = []
-    # m_duplicates = 0
-    # m_processed = 0
-    # m_popouts = 0
+    m_duplicates = 0
 
+    # already presorted
     # important: without this presorting, cannot use the optimization of skipping comparisons in `thread_process_duplicates`
-    items.sort(key=lambda x: x["size"])  # sort the files based on size, easier to do comparisons
+    # items.sort(key=lambda x: x["size"])  # [comment4]: sort the files based on size, easier to do comparisons
 
     if parallelize:
+        global THREAD_FINISHED, THREAD_S, THREAD_PROGRESS, THREAD_COUNT, THREAD_LOCK
+        global THREAD_FILES_PROCESSED, THREAD_FILES_DUPLICATES
         # help: [ https://stackoverflow.com/questions/1006289/how-to-find-out-the-number-of-cpus-using-python ]
         # todo: thread throttleing, need to figure out solution to throttleing and optimize the number of threads
         # todo: thread dynamic loading, if a thread finishes processing, have another thread chunk its data again, and spread the load
@@ -483,6 +481,7 @@ def find_duplicates(items=[], parallelize=True):
             THREAD_S = [None] * THREAD_COUNT
             THREAD_PROGRESS = [0] * THREAD_COUNT
             THREAD_FILES_PROCESSED = [False] * len(FILES)
+            THREAD_FILES_DUPLICATES = [0] * THREAD_COUNT
 
         for i in range(THREAD_COUNT):
             # todo: figure out if chunking is possible, as passing items to each thread creates duplicated lists which occupy-RAM and slow down processor, despite being used as read-only resource
@@ -510,29 +509,37 @@ def find_duplicates(items=[], parallelize=True):
                     LOGGER.debug("Finished threads: [{}]".format(THREAD_FINISHED))
                     with THREAD_LOCK:
                         THREAD_S[i].join()
-                        # all_duplicates.update(p_threads[i].result) # todo: figure out if chunking algorithm works for this because its wrongfully identifying `92K` duplicates for `45K` total files
                         all_duplicates += THREAD_S[i].result # todo: figure out if chunking algorithm works for this because its wrongfully identifying `92K` duplicates for `45K` total files
                         THREAD_S[i] = None
+        m_duplicates = sum(THREAD_FILES_DUPLICATES)
     else:
-        pass
-        # for i in range(len(items) - 1):
-        #     # print_duplicates_ETA()
-        #     # todo: optimize search, by comparing only files that have the same size, which would run faster
-        #     duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
-        #     for j in range(i + 1, len(items)):
-        #         # print("{} - {}".format(i,j))
-        #         if items[i]["size"] == items[j]["size"] and items[i]["checksum"] == items[j]["checksum"] and items[i]["size"] != 0:
-        #             LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
-        #             duplicates_for_file.append(items[j])
-        #         else:
-        #             if items[i]["size"] == 0:
-        #                 # todo: figure out what to do with  having size 0, because they can pollute disks as well
-        #                 LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
-        #     if len(duplicates_for_file) > 1:
-        #         LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
-        #         duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
-        #         all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
-        #         m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+        global PRINT_PROGRESS
+        for i in range(len(items)):
+            # print_duplicates_ETA()
+            # todo: optimize search, by comparing only files that have the same size, which would run faster
+            duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
+            PRINT_PROGRESS = i
+            for j in range(len(items)):
+                # print("{} - {}".format(i,j))
+                if i != j:
+                    # [comment4]: optimization of search based on presorting
+                    if items[i]["size"] < items[j]["size"]:
+                        break
+                    if items[i]["size"] > items[j]["size"]:
+                        continue
+                    if items[i]["size"] != 0:
+                        if items[i]["size"] == items[j]["size"]:
+                            if items[i]["checksum"] == items[j]["checksum"]:
+                                LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
+                                duplicates_for_file.append(items[j])
+                    else:
+                        # todo: figure out what to do with  having size 0, because they can pollute disks as well
+                        LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
+            if len(duplicates_for_file) > 1:
+                LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
+                duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
+                all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
+                m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
 
     LOGGER.info("Found [{}] duplicated files having [{}] duplicates and occupying [{}] out of [{}] in [{}] generating [{}] metadata".format(
         len(all_duplicates),
@@ -567,21 +574,16 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
     print_thread.daemon = True
     print_thread.start()
 
-    global THREAD_FINISHED, THREAD_S, THREAD_PROGRESS, THREAD_COUNT, THREAD_LOCK
-    global m_popouts, m_files, m_size, m_cached, m_finished # note: this is very important, update global variables so that printing threads see actual data
-
     items = []
+
+    # [comment2]: removing this caused an overhead
     # filter = pathlib.Path(path).glob('**/*')  # get hidden files
     # if hidden != True:
     #     filter = glob.glob(os.path.join(path, "**/*"), recursive=True) + \
     #              glob.glob(os.path.join(path, ".**/*"), recursive=True)  # get recursively inside folders
 
-    m_popouts = 0
-    m_files = 0
-    m_size = 1 # avoid division by 0
-    m_cached = 0
-
     if parallelize:
+        global THREAD_FINISHED, THREAD_S, THREAD_PROGRESS, THREAD_COUNT, THREAD_LOCK
         # help: [ https://stackoverflow.com/questions/1006289/how-to-find-out-the-number-of-cpus-using-python ]
         # todo: thread throttleing, need to figure out solution to throttleing and optimize the number of threads
         # todo: thread dynamic loading, if a thread finishes processing, have another thread chunk its data again, and spread the load
@@ -617,46 +619,46 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                         items += THREAD_S[i].result
                         THREAD_S[i] = None
     else:
-        pass
-    # # important: [comment2] using a list of paths, instead of filter increased the processing time from `10min` to `16min`
-    # for file in METRIC['items']:
-    # # # todo: this is the problem, need to construct the file list when collecting metrics, and then convert that list into chunks that get individually processed
-    # # for fileref in filter: # note: using the fileref has some advantages, as the processing is way faster
-    #     # print_collecting_ETA()
-    #     # file = str(fileref)
-    #     if os.path.isfile(file):
-    #         m_files += 1
-    #         # print(file)
-    #         # todo: use multi-threading to speed up processing of files, split main list into [number of threads] chunks
-    #         # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
-    #         # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
-    #         # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
-    #         if len(cached_files):
-    #             if file not in [ x["path"] for x in cached_files ]: # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
-    #                 LOGGER.debug("Found uncached file [{}]".format(file))
-    #                 item = {'path': file,
-    #                         'size': os.path.getsize(file),
-    #                         'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-    #                         'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
-    #                         }
-    #                 m_size += item['size']
-    #                 items.append(item)
-    #             else:
-    #                 LOGGER.debug("Skipped already indexed file [{}]".format(file))
-    #                 m_cached += 1 # this means file is already indexed so we skip rehashing it
-    #                 pass
-    #         else:
-    #             LOGGER.debug("Caching file [{}]".format(file))
-    #             item = {'path': file,
-    #                     'size': os.path.getsize(file),
-    #                     'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-    #                     'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
-    #                     }
-    #             m_size += item['size']
-    #             items.append(item)
+        global PRINT_FILES_PROCESSED_COUNT, PRINT_FILES_PROCESSED_SIZE, PRINT_FILES_CACHED_SKIPPED
+        # important: [comment2] using a list of paths, instead of filter increased the processing time from `10min` to `16min`
+        for file in metric['items']:
+        # # todo: this is the problem, need to construct the file list when collecting metrics, and then convert that list into chunks that get individually processed
+        # for fileref in filter: # note: using the fileref has some advantages, as the processing is way faster
+            # print_collecting_ETA()
+            # file = str(fileref)
+            if os.path.isfile(file):
+                PRINT_FILES_PROCESSED_COUNT += 1
+                # print(file)
+                # todo: use multi-threading to speed up processing of files, split main list into [number of threads] chunks
+                # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
+                # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
+                # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
+                if len(cached_files):
+                    if file not in [ x["path"] for x in cached_files ]: # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
+                        LOGGER.debug("Found uncached file [{}]".format(file))
+                        item = {'path': file,
+                                'size': os.path.getsize(file),
+                                'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+                                'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
+                                }
+                        PRINT_FILES_PROCESSED_SIZE += item['size']
+                        items.append(item)
+                    else:
+                        LOGGER.debug("Skipped already indexed file [{}]".format(file))
+                        PRINT_FILES_CACHED_SKIPPED += 1 # this means file is already indexed so we skip rehashing it
+                        pass
+                else:
+                    LOGGER.debug("Caching file [{}]".format(file))
+                    item = {'path': file,
+                            'size': os.path.getsize(file),
+                            'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+                            'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
+                            }
+                    PRINT_FILES_PROCESSED_SIZE += item['size']
+                    items.append(item)
 
     LOGGER.info("Processed [{}/{}] uncached files in [{}] generating [{}] metadata".format(
-            m_files - m_cached,
+            PRINT_FILES_PROCESSED_COUNT - PRINT_FILES_CACHED_SKIPPED,
             metric["files"],
             print_time(time.time() - start_time),
             print_size(sys.getsizeof(items))
@@ -679,20 +681,27 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[], cache
     :return:
     """
     start_time = time.time()
+    global METRIC, FILES
     LOGGER.info("Started processing hashes for files from [{}] paths".format( len(paths)) )
     # todo: calculate how much overhead the threading introduces and display it
     # todo: maintain the global variables only in the functions that use them
-    global FILES
-    FILES = cached_files # note: adding cached files directly to files index
+    all_files = cached_files # note: adding cached files directly to files index
     for path in paths:
-        global METRIC
-        METRIC = [x for x in metrics if x["path"] == path][0]
-        LOGGER.debug("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, METRIC["files"], print_size(METRIC["size"])))
+        metric = [x for x in metrics if x["path"] == path][0]
+
+        METRIC = metric
+
+        LOGGER.debug("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
         meta = collect_files_in_path(path, hidden, METRIC, cached_files, cached_paths, parallelize)
         LOGGER.debug("Collected files in [%s] and built up [%s] of metadata" % (print_time(time.time() - start_time), print_size(sys.getsizeof(meta))))
-        FILES += meta
-    FILES.sort(key=lambda x: x["size"]) # note: [comment3] very important to get files sorted
-    return FILES
+        all_files += meta
+
+    # note: this is needed because files is used both in the `print_collecting_ETA` and the `thread_process_duplicates`
+    # todo: sepparate the context of `FILES` so that it is used only once
+    all_files.sort(key=lambda x: x["size"])
+    FILES = copy.deepcopy(all_files)
+
+    return all_files
 
 
 @timeit
@@ -765,7 +774,7 @@ def menu():
                     'similar - chance of different files with same size and checksum should be close to 0')
 
     # todo: add timeout parameter which is used by the print threads
-    parser.add_argument('-p', '--parallelize', default=True, action='store_true', required=False,
+    parser.add_argument('-p', '--parallelize', default=False, action='store_true', required=False,
                         help='flag indicating if the script should use multi-threading capability, this can add overhead instead of speed things up')
     parser.add_argument('-d', '--debug', choices=debug_levels.keys(), default='info', required=False,
                         help='parameter indicating the level of logs to be shown on screen')
@@ -814,16 +823,14 @@ def main():
 
     metrics = collect_all_metrics(args.paths, args.hidden)
     # todo: implement progressive threading, meaning interrupt single thread and spawn more threads over the remaining data as time progresses
-    # todo: implement threading for `collect_all_files` and for `find_duplicates` - which should speed up things
     files = collect_all_files(args.paths, args.hidden, metrics, cached_files, cached_paths, args.parallelize)
 
     if args.cache:
         dump_cache(files)
 
-    preserve_files = copy.deepcopy(files)
     zero_sized_files = [ x for x in files if x["size"] == 0 ] # todo: need to deal somehow with these files that pollute disks
 
-    # note: duplicates will destructively interfere with FILES and will
+    # note: duplicates will destructively interfere with `FILES`
     duplicates = find_duplicates(files, args.parallelize)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
 
     if args.json:
@@ -839,7 +846,7 @@ def main():
     #  need to pre-index files and folders to figure out size of files and distribution in subfolders, then start the indexing of metadata
     LOGGER.info("Executed script in [{}]".format(print_time(time.time() - start_time)))
 
+    pass  # used for debug breakpoint
 
 if __name__ == "__main__":
     main()
-    pass  # used for debug breakpoint
