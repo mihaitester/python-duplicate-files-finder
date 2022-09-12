@@ -393,7 +393,7 @@ def load_cache(cache_file=""):
 
 
 @timeit
-def dump_duplicates(items=[]):
+def dump_duplicates(items=[], parallelize=True):
     """
     help: [ https://appdividend.com/2022/06/02/how-to-convert-python-list-to-json/ ] - dumping objects to json
     # :param items: [[original_file, duplicate1, duplicate2, ...], ...]
@@ -401,7 +401,10 @@ def dump_duplicates(items=[]):
     :return:
     """
     duplicates_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
-                                    ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json")
+                                     ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json")
+    if parallelize:
+        duplicates_file = "{}_{}_p".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
+                                         ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json")
     try:
         LOGGER.info("Dumping duplicates file [{}]".format(duplicates_file))
         with open(duplicates_file, "w", encoding=ENCODING) as dumpfile:
@@ -834,7 +837,7 @@ def main():
     duplicates = find_duplicates(files, args.parallelize)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
 
     if args.json:
-        dump_duplicates(duplicates)
+        dump_duplicates(duplicates, args.parallelize)
     if args.links:
         link_back_duplicates(duplicates)
     if args.erase:
