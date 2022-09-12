@@ -2,18 +2,42 @@
 I have been trying to make some backup system and after a while ended with a lot of duplicate files that end up taking up space.
 So I thought about this tool that would help me find out which files are duplicates and ideally remove the duplicates and put some link to the original file thus saving space and allowing for more backups to be stored on a single HDD.
 
-For example processing `15K` files which take up `212GB` HDD takes roughly `40 minutes` to process the hashes, but the overall duplicate identification takes `10 seconds` iterating over a metadata that is less than `100KB` in RAM. 
+For example processing `15K` files which take up `212GB` HDD takes roughly `40 minutes` to process the hashes, but the overall duplicate identification takes `10 seconds` iterating over a metadata that is less than `100KB` in RAM.
+
+# Algorithm
+1. Script will start querying the paths and collect metrics such as number of files and the size of the files.
+   - since this takes only a few seconds there is no need to parallelize this yet
+2. Script then iterates through the paths and builds up an index `[{'path':str, 'size':int, 'time':str, 'checksum':str}, ...]`.
+   - if the `-p` flag is provided then this is done with threads that chunk the total number of files
+     - `thread1`: from `0 * len(files) / number_of_threads` to `1 * len(files) / number_of_threads`
+     - `thread2`: from `1 * len(files) / number_of_threads` to `2 * len(files) / number_of_threads`
+     - `thread3`: from `2 * len(files) / number_of_threads` to `3 * len(files) / number_of_threads`
+       - and so on
+   - while this is executing a printer thread is running in the background and displaying updates every `60 seconds`
+3. Script then sorts the constructed index based on size
+5. Script will dump a cache file containing the file index described above if the `-c` flag is provided
+4. Script will then iterate the index and compare files building a new index of duplicates `[original_file, duplicate1, dulicate2, ...], ...]`
+    - if the `-p` flag is provided then this will be done with threads that iterate the index using the following formula
+      - `thread1`: will iterate through files using multiples of `number_of_threads * K + 1`
+      - `thread2`: will iterate through files using multiples of `number_of_threads * K + 2`
+      - `thread3`: will iterate through files using multiples of `number_of_threads * K + 3`
+        - and so on, where `K` is an arbitrary number
+    - while this is executing a printer thread is running in the background and displaying updates every `60 seconds`
+5. Script will dump the duplicates if `-j` flag is provided
+6. Script will create links from duplicates to duplicated file if `-l` flag is provided
+7. Script will remove duplicates if the `-e` flag is provided
+
 
 # Usage
-> duplicate-finder.py [path1] [path2] ... -j -l -e -n -c -k [cache_file.cache] -d [log_level]
-
-* `-d` - parameter indicating which log level to use inside script, default:`info`, choices: `critical, error, warning, info, debug, notset`
+> duplicate-finder.py [path1] [path2] ... -p -j -l -e -n -c -k [cache_file.cache] -d [log_level] 
+* `-p` - flag indicating that parallel threads should be spawned and used to process files for hashes and for comparing the files
 * `-j` - flag indicating the creation of a dump a file containing a json with list of sequences of duplicates, where the first element in each sequence is the original file found, and all successive ones are duplicates, format `[[original_file, duplicate1, dulicate2, ...], ...]`
 * `-l` - flag indicating if backlinks from the duplicates to the original file found should be created
 * `-e` - flag indicating that duplicate files should be erased
 * `-n` - flag indicating that python should search hidden folders and files including files and folders starting with `.`
 * `-c` - flag indicating that script should dump the metadata it generates into a json file with the following structure `[{'path':str, 'size':int, 'time':str, 'checksum':str}, ...]`
 * `-k` - parameter indicating the filename of a previously dumped metadata file, it should speed up by skipping rehashing of files already hashed
+* `-d` - parameter indicating which log level to use inside script, default:`info`, choices: `critical, error, warning, info, debug, notset`
 
 # Prerequisites
 Currently tested manually script on `Windows 10`, and with `Python 3.10.6`.
