@@ -822,6 +822,7 @@ def main():
     LOGGER.setLevel(args.debug)
 
     cached_files = []
+    cached_paths = []
     if args.kache:
         cached_files, cached_paths = load_cache(args.kache)
 
