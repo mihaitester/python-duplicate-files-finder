@@ -403,8 +403,8 @@ def dump_duplicates(items=[], parallelize=True):
     duplicates_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
                                      ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json")
     if parallelize:
-        duplicates_file = "{}_{}_p".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
-                                         ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json")
+        duplicates_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
+                                         ('.').join(os.path.basename(__file__).split('.')[:-1]) + "_p.json")
     try:
         LOGGER.info("Dumping duplicates file [{}]".format(duplicates_file))
         with open(duplicates_file, "w", encoding=ENCODING) as dumpfile:
@@ -517,6 +517,7 @@ def find_duplicates(items=[], parallelize=True):
         m_duplicates = sum(THREAD_FILES_DUPLICATES)
     else:
         global PRINT_PROGRESS
+        #todo: BUG: the number of duplicates found by parallel threads and single thread is not the same, there is a bug here
         for i in range(len(items)):
             # print_duplicates_ETA()
             # todo: optimize search, by comparing only files that have the same size, which would run faster
