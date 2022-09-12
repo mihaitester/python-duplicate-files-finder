@@ -192,11 +192,12 @@ def thread_process_duplicates(index, items, start_time=time.time(), timeout=60, 
     end = len(FILES)
     while i < end:
     # for i in range(lower_limit, upper_limit):
+    #     processed = False
         with THREAD_LOCK:
             # print_duplicates_ETA()
             THREAD_PROGRESS[index] = i
-
-        # if "duplicated" not in FILES[i].keys():
+            # if "duplicated" not in FILES[i].keys():
+            # processed = THREAD_FILES_PROCESSED[i]
         if not THREAD_FILES_PROCESSED[i]:
         # if FILES[i] != None:
             # todo: optimize search, by comparing only files that have the same size, which would run faster
@@ -211,6 +212,9 @@ def thread_process_duplicates(index, items, start_time=time.time(), timeout=60, 
                 # for j in range(i+1, len(items)):  # note: [comment3] if already marked duplicates its pointless to backcheck files that were processed already
                 #     if "duplicated" not in FILES[j].keys():
                 #     if FILES[j] != None:
+                #     processed = False
+                    # with THREAD_LOCK:
+                    #     processed = THREAD_FILES_PROCESSED[j]
                     if not THREAD_FILES_PROCESSED[j]:
                         # print("{} - {}".format(i,j))
                         if i != j: # important: because of using multi-threading the first thread to inject a line of duplicates wins
