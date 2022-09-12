@@ -517,33 +517,43 @@ def find_duplicates(items=[], parallelize=True):
         m_duplicates = sum(THREAD_FILES_DUPLICATES)
     else:
         global PRINT_PROGRESS
+        # todo: measure and keep track of all this metadata that gets generated and used by the script
+        processed = [False] * len(items)
         #todo: BUG: the number of duplicates found by parallel threads and single thread is not the same, there is a bug here
         for i in range(len(items)):
             # print_duplicates_ETA()
-            # todo: optimize search, by comparing only files that have the same size, which would run faster
-            duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
             PRINT_PROGRESS = i
-            for j in range(len(items)):
-                # print("{} - {}".format(i,j))
-                if i != j:
-                    # [comment4]: optimization of search based on presorting
-                    if items[i]["size"] < items[j]["size"]:
-                        break
-                    if items[i]["size"] > items[j]["size"]:
-                        continue
-                    if items[i]["size"] != 0:
-                        if items[i]["size"] == items[j]["size"]:
-                            if items[i]["checksum"] == items[j]["checksum"]:
-                                LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
-                                duplicates_for_file.append(items[j])
-                    else:
-                        # todo: figure out what to do with  having size 0, because they can pollute disks as well
-                        LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
-            if len(duplicates_for_file) > 1:
-                LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
-                duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
-                all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
-                m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+            if not processed[i]:
+                # todo: optimize search, by comparing only files that have the same size, which would run faster
+                duplicates_for_file = [items[i]]  # [comment1]: consider the 0 index of each list as the original file
+                duplicates_indexes = []
+                for j in range(len(items)):
+                    # print("{} - {}".format(i,j))
+                    if i != j:
+                        if not processed[j]:
+                            # [comment4]: optimization of search based on presorting
+                            if items[i]["size"] < items[j]["size"]:
+                                break
+                            if items[i]["size"] > items[j]["size"]:
+                                continue
+                            if items[i]["size"] != 0:
+                                if items[i]["size"] == items[j]["size"]:
+                                    if items[i]["checksum"] == items[j]["checksum"]:
+                                        LOGGER.debug("Found duplicate [{}] for file [{}]".format(items[j]["path"], items[i]["path"]))
+                                        duplicates_for_file.append(items[j])
+                                        duplicates_indexes.append(j)
+                            else:
+                                # todo: figure out what to do with  having size 0, because they can pollute disks as well
+                                LOGGER.debug("Found empty file [{}]".format(items[i]["path"]))
+                if len(duplicates_for_file) > 1:
+                    LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, items[i]["path"]))
+                    duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
+                    all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
+                    m_duplicates += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+                    # ensure files marked as duplicates or duplicated do not get processed again
+                    for k in range(len(duplicates_indexes)):
+                        processed[duplicates_indexes[k]] = True
+                    processed[i] = True
 
     LOGGER.info("Found [{}] duplicated files having [{}] duplicates and occupying [{}] out of [{}] in [{}] generating [{}] metadata".format(
         len(all_duplicates),
