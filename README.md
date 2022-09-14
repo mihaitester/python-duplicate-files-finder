@@ -205,3 +205,73 @@ MainThread__2022-09-12_13-31-14.881 Dumping duplicates file [2022-09-12_13-31-14
 MainThread__2022-09-12_13-31-18.355 === func:[dump_duplicates] took: [0days 00:00:03.474]
 MainThread__2022-09-12_13-31-18.356 Executed script in [0days 00:08:11.284]
 ```
+
+# weird
+```commandline
+MainThread__2022-09-14_20-08-46.371 === func:[collect_metrics_in_path] took: [0days 00:00:00.019]
+MainThread__2022-09-14_20-08-46.371 Path [c:\users\notarealuser\downloads] contains [2] folders and [249] items, totaling [0.00TB 1.31GB 317.01MB 12.35KB 357.00B]
+MainThread__2022-09-14_20-08-49.632 === func:[collect_metrics_in_path] took: [0days 00:00:03.260]
+MainThread__2022-09-14_20-08-49.632 Path [d:\__code__] contains [6174] folders and [44814] items, totaling [0.00TB 1.38GB 393.48MB 496.49KB 499.00B]
+MainThread__2022-09-14_20-08-49.632 === func:[collect_all_metrics] took: [0days 00:00:03.280]
+MainThread__2022-09-14_20-08-49.632 Started processing hashes for files from [2] paths
+Thread-6 (function)__2022-09-14_20-08-49.752 Thread [0] started hashing chunk [0,32] of [249] files with [0] cached files
+Thread-12 (function)__2022-09-14_20-08-49.752 Thread [6] started hashing chunk [192,224] of [249] files with [0] cached files
+Thread-8 (function)__2022-09-14_20-08-49.752 Thread [2] started hashing chunk [64,96] of [249] files with [0] cached files
+Thread-13 (function)__2022-09-14_20-08-49.752 Thread [7] started hashing chunk [224,249] of [249] files with [0] cached files
+Thread-11 (function)__2022-09-14_20-08-49.752 Thread [5] started hashing chunk [160,192] of [249] files with [0] cached files
+Thread-10 (function)__2022-09-14_20-08-49.752 Thread [4] started hashing chunk [128,160] of [249] files with [0] cached files
+Thread-9 (function)__2022-09-14_20-08-49.752 Thread [3] started hashing chunk [96,128] of [249] files with [0] cached files
+Thread-7 (function)__2022-09-14_20-08-49.752 Thread [1] started hashing chunk [32,64] of [249] files with [0] cached files
+Thread-12 (function)__2022-09-14_20-08-49.812 Thread [6] finished processing chunk [192,224] of [249] files with [0] cached files in [0days 00:00:03.463] generating [0.00TB 0.00GB 0.00MB 0.30KB 312.00B] metadata
+Thread-10 (function)__2022-09-14_20-08-49.822 Thread [4] finished processing chunk [128,160] of [249] files with [0] cached files in [0days 00:00:03.473] generating [0.00TB 0.00GB 0.00MB 0.30KB 312.00B] metadata
+Thread-11 (function)__2022-09-14_20-08-49.832 Thread [5] finished processing chunk [160,192] of [249] files with [0] cached files in [0days 00:00:03.483] generating [0.00TB 0.00GB 0.00MB 0.30KB 312.00B] metadata
+Thread-13 (function)__2022-09-14_20-08-49.842 Thread [7] finished processing chunk [224,249] of [249] files with [0] cached files in [0days 00:00:03.493] generating [0.00TB 0.00GB 0.00MB 0.30KB 312.00B] metadata
+Thread-9 (function)__2022-09-14_20-08-49.852 Thread [3] finished processing chunk [96,128] of [249] files with [0] cached files in [0days 00:00:03.503] generating [0.00TB 0.00GB 0.00MB 0.30KB 312.00B] metadata
+Thread-6 (function)__2022-09-14_20-08-49.892 Thread [0] finished processing chunk [0,32] of [249] files with [0] cached files in [0days 00:00:03.543] generating [0.00TB 0.00GB 0.00MB 0.30KB 312.00B] metadata
+Thread-7 (function)__2022-09-14_20-08-50.083 Thread [1] finished processing chunk [32,64] of [249] files with [0] cached files in [0days 00:00:03.734] generating [0.00TB 0.00GB 0.00MB 0.30KB 312.00B] metadata
+Thread-8 (function)__2022-09-14_20-08-51.707 Thread [2] finished processing chunk [64,96] of [249] files with [0] cached files in [0days 00:00:05.358] generating [0.00TB 0.00GB 0.00MB 0.30KB 312.00B] metadata
+Thread-5 (thread_print)__2022-09-14_20-08-51.762 Processed [249/249] files in [0days 00:00:05.413] ETA: [0days 23:59:59.999] based on [100.00%] data processed generating [0.00TB 0.00GB 0.00MB 0.05KB 56.00B] metadata
+MainThread__2022-09-14_20-08-54.652 Processed [249/249] uncached files in [0days 00:00:05.020] generating [0.00TB 0.00GB 0.00MB 2.05KB 56.00B] metadata
+Thread-15 (function)__2022-09-14_20-08-55.793 Thread [0] started hashing chunk [0,5602] of [44814] files with [249] cached files
+Thread-16 (function)__2022-09-14_20-08-55.793 Thread [1] started hashing chunk [5602,11204] of [44814] files with [249] cached files
+Thread-17 (function)__2022-09-14_20-08-55.793 Thread [2] started hashing chunk [11204,16806] of [44814] files with [249] cached files
+Thread-18 (function)__2022-09-14_20-08-55.793 Thread [3] started hashing chunk [16806,22408] of [44814] files with [249] cached files
+Thread-19 (function)__2022-09-14_20-08-55.793 Thread [4] started hashing chunk [22408,28010] of [44814] files with [249] cached files
+Thread-20 (function)__2022-09-14_20-08-55.793 Thread [5] started hashing chunk [28010,33612] of [44814] files with [249] cached files
+Thread-21 (function)__2022-09-14_20-08-55.802 Thread [6] started hashing chunk [33612,39214] of [44814] files with [249] cached files
+Thread-22 (function)__2022-09-14_20-08-55.802 Thread [7] started hashing chunk [39214,44814] of [44814] files with [249] cached files
+Thread-18 (function)__2022-09-14_20-09-02.189 Thread [3] finished processing chunk [16806,22408] of [44814] files with [249] cached files in [0days 00:00:15.840] generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Thread-19 (function)__2022-09-14_20-09-02.315 Thread [4] finished processing chunk [22408,28010] of [44814] files with [249] cached files in [0days 00:00:15.966] generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Thread-21 (function)__2022-09-14_20-09-02.375 Thread [6] finished processing chunk [33612,39214] of [44814] files with [249] cached files in [0days 00:00:16.026] generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Thread-20 (function)__2022-09-14_20-09-02.419 Thread [5] finished processing chunk [28010,33612] of [44814] files with [249] cached files in [0days 00:00:16.070] generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Thread-15 (function)__2022-09-14_20-09-02.438 Thread [0] finished processing chunk [0,5602] of [44814] files with [249] cached files in [0days 00:00:16.089] generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Thread-17 (function)__2022-09-14_20-09-02.449 Thread [2] finished processing chunk [11204,16806] of [44814] files with [249] cached files in [0days 00:00:16.099] generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Thread-16 (function)__2022-09-14_20-09-02.752 Thread [1] finished processing chunk [5602,11204] of [44814] files with [249] cached files in [0days 00:00:16.403] generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+Thread-22 (function)__2022-09-14_20-09-04.219 Thread [7] finished processing chunk [39214,44814] of [44814] files with [249] cached files in [0days 00:00:17.871] generating [0.00TB 0.00GB 0.04MB 46.05KB 56.00B] metadata
+MainThread__2022-09-14_20-09-05.812 Processed [45063/44814] uncached files in [0days 00:00:10.019] generating [0.00TB 0.00GB 0.38MB 393.96KB 984.00B] metadata
+MainThread__2022-09-14_20-09-07.332 === func:[collect_all_files] took: [0days 00:00:17.699]
+MainThread__2022-09-14_20-09-07.332 Dumping cache [2022-09-14_20-09-07_duplicate-finder.cache]
+MainThread__2022-09-14_20-09-11.978 === func:[dump_cache] took: [0days 00:00:04.645]
+MainThread__2022-09-14_20-09-11.992 Started searching for duplicates among [45063] indexed files
+Thread-24 (function)__2022-09-14_20-09-12.022 Thread [0] started processing chunk [8k+0] of [45063] files
+Thread-25 (function)__2022-09-14_20-09-12.036 Thread [1] started processing chunk [8k+1] of [45063] files
+Thread-25 (function)__2022-09-14_20-09-12.048 Thread [1] finished comparing chunk [8k+1] finding [159] duplicated files with [439] duplicates in [0days 00:00:25.700] occupying [0.00TB 0.00GB 3.54MB 551.33KB 339.00B]
+Thread-24 (function)__2022-09-14_20-09-12.052 Thread [0] finished comparing chunk [8k+0] finding [181] duplicated files with [498] duplicates in [0days 00:00:25.703] occupying [0.00TB 0.00GB 2.83MB 853.89KB 911.00B]
+Thread-26 (function)__2022-09-14_20-09-12.052 Thread [2] started processing chunk [8k+2] of [45063] files
+Thread-26 (function)__2022-09-14_20-09-12.069 Thread [2] finished comparing chunk [8k+2] finding [151] duplicated files with [400] duplicates in [0days 00:00:25.720] occupying [0.00TB 0.00GB 2.45MB 458.97KB 996.00B]
+Thread-27 (function)__2022-09-14_20-09-12.069 Thread [3] started processing chunk [8k+3] of [45063] files
+Thread-27 (function)__2022-09-14_20-09-12.082 Thread [3] finished comparing chunk [8k+3] finding [160] duplicated files with [362] duplicates in [0days 00:00:25.733] occupying [0.00TB 0.00GB 2.32MB 325.10KB 101.00B]
+Thread-28 (function)__2022-09-14_20-09-12.087 Thread [4] started processing chunk [8k+4] of [45063] files
+Thread-28 (function)__2022-09-14_20-09-12.102 Thread [4] finished comparing chunk [8k+4] finding [178] duplicated files with [629] duplicates in [0days 00:00:25.753] occupying [0.00TB 0.00GB 3.91MB 935.10KB 102.00B]
+Thread-29 (function)__2022-09-14_20-09-12.102 Thread [5] started processing chunk [8k+5] of [45063] files
+Thread-29 (function)__2022-09-14_20-09-12.118 Thread [5] finished comparing chunk [8k+5] finding [154] duplicated files with [450] duplicates in [0days 00:00:25.769] occupying [0.00TB 0.01GB 13.67MB 689.81KB 832.00B]
+Thread-30 (function)__2022-09-14_20-09-12.120 Thread [6] started processing chunk [8k+6] of [45063] files
+Thread-30 (function)__2022-09-14_20-09-12.138 Thread [6] finished comparing chunk [8k+6] finding [185] duplicated files with [414] duplicates in [0days 00:00:25.788] occupying [0.00TB 0.02GB 16.27MB 276.39KB 397.00B]
+Thread-31 (function)__2022-09-14_20-09-12.138 Thread [7] started processing chunk [8k+7] of [45063] files
+Thread-31 (function)__2022-09-14_20-09-12.152 Thread [7] finished comparing chunk [8k+7] finding [165] duplicated files with [424] duplicates in [0days 00:00:25.803] occupying [0.00TB 0.00GB 3.40MB 410.27KB 272.00B]
+MainThread__2022-09-14_20-09-12.169 Found [0] duplicated files having [3616] duplicates and occupying [0.00TB 0.00GB 0.00MB 0.00KB 0.00B] out of [0.00TB 2.69GB 710.50MB 508.84KB 856.00B] in [0days 00:00:00.176] generating [0.00TB 0.00GB 0.00MB 0.05KB 56.00B] metadata
+MainThread__2022-09-14_20-09-14.012 === func:[find_duplicates] took: [0days 00:00:02.020]
+MainThread__2022-09-14_20-09-14.012 Dumping duplicates file [2022-09-14_20-09-14_duplicate-finder_p.json]
+MainThread__2022-09-14_20-09-14.013 === func:[dump_duplicates] took: [0days 00:00:00.000]
+MainThread__2022-09-14_20-09-14.014 Executed script in [0days 00:00:27.665]
+```

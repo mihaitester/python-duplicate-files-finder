@@ -64,7 +64,7 @@ def print_collecting_ETA(parallelize, start_time, timeout):
     if (time.time() - start_time) / timeout > PRINT_POPUP_COUNT:
         PRINT_POPUP_COUNT += 1
         PRINT_ETA = (METRIC["size"] - PRINT_FILES_PROCESSED_SIZE) * (time.time() - start_time) / PRINT_FILES_PROCESSED_SIZE
-        LOGGER.info("Processed [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
+        LOGGER.info("Hashed [{}/{}] files in [{}] ETA: [{}] based on [{:.2f}%] data processed generating [{}] metadata".format(
                 PRINT_FILES_PROCESSED_COUNT,
                 METRIC["files"],
                 print_time(time.time() - start_time),
@@ -233,12 +233,12 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
             else:
                 # if items[i]["size"] == 0:
                 # todo: figure out what to do with  having size 0, because they can pollute disks as well
-                LOGGER.debug("Found empty file [{}]".format(FILES[changing_indexes[i]]["path"]))
+                LOGGER.debug("Found empty file [{}]".format(FILES[changing_indexes[a]]["path"]))
                 # todo: figure out if same name files in different folders
 
             if len(duplicates_for_file) > 1:
             # if len(duplicates_for_file) > 0:
-                LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, FILES[changing_indexes[i]]["path"]))
+                LOGGER.debug("Found total [{}] duplicates for file [{}]".format(len(duplicates_for_file)-1, FILES[changing_indexes[a]]["path"]))
                 # duplicates_for_file.sort(key=lambda y: y["time"])  # sort duplicate files, preserving oldest one, improve for [comment1]
 
                 # consistency check, because it seems files could have been doubly inserted in the list of files
@@ -268,7 +268,7 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
         THREAD_FINISHED[index] = True
 
     # LOGGER.info("Thread [{}] finished processing chunk [{},{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, lower_limit, upper_limit, len(all_duplicates), sum([len(x) - 1 for x in all_duplicates]), print_time(time.time() - m_start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in all_duplicates]) if len(all_duplicates) > 0 else 0)))
-    LOGGER.info("Thread [{}] finished processing chunk [{}k+{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, THREAD_COUNT, index, len(duplicates), sum([len(x) - 1 for x in duplicates]), print_time(time.time() - start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in duplicates]) if len(duplicates) > 0 else 0)))
+    LOGGER.info("Thread [{}] finished comparing chunk [{}k+{}] finding [{}] duplicated files with [{}] duplicates in [{}] occupying [{}]".format(index, THREAD_COUNT, index, len(duplicates), sum([len(x) - 1 for x in duplicates]), print_time(time.time() - start_time), print_size(sum([sum([x[i]["size"] for i in range(1, len(x))]) for x in duplicates]) if len(duplicates) > 0 else 0)))
 
     return duplicates
 
@@ -285,7 +285,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
     if upper_limit > len(METRIC["items"]):
         upper_limit = len(METRIC["items"])
 
-    LOGGER.info("Thread [{}] started processing chunk [{},{}] of [{}] files with [{}] cached files".format(index, chunk * index, upper_limit, len(METRIC["items"]), len(cached_files)))
+    LOGGER.info("Thread [{}] started hashing chunk [{},{}] of [{}] files with [{}] cached files".format(index, chunk * index, upper_limit, len(METRIC["items"]), len(cached_files)))
 
     items = []
 
@@ -658,7 +658,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                 # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
                 if len(cached_files):
                     if file not in [ x["path"] for x in cached_files ]: # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
-                        LOGGER.debug("Found uncached file [{}]".format(file))
+                        LOGGER.debug("Found unhashed file [{}]".format(file))
                         item = {'path': file,
                                 'size': os.path.getsize(file),
                                 'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
@@ -667,11 +667,11 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                         PRINT_FILES_PROCESSED_SIZE += item['size']
                         items.append(item)
                     else:
-                        LOGGER.debug("Skipped already indexed file [{}]".format(file))
+                        LOGGER.debug("Skipped already hashed file [{}]".format(file))
                         PRINT_FILES_CACHED_SKIPPED += 1 # this means file is already indexed so we skip rehashing it
                         pass
                 else:
-                    LOGGER.debug("Caching file [{}]".format(file))
+                    LOGGER.debug("Hashing file [{}]".format(file))
                     item = {'path': file,
                             'size': os.path.getsize(file),
                             'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
@@ -680,7 +680,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                     PRINT_FILES_PROCESSED_SIZE += item['size']
                     items.append(item)
 
-    LOGGER.info("Processed [{}/{}] uncached files in [{}] generating [{}] metadata".format(
+    LOGGER.info("Hashed [{}/{}] uncached files in [{}] generating [{}] metadata".format(
             PRINT_FILES_PROCESSED_COUNT - PRINT_FILES_CACHED_SKIPPED,
             metric["files"],
             print_time(time.time() - start_time),
@@ -714,9 +714,9 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[], cache
 
         METRIC = metric
 
-        LOGGER.debug("Collecting files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
+        LOGGER.debug("Collecting and hashing files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
         meta = collect_files_in_path(path, hidden, METRIC, cached_files, cached_paths, parallelize)
-        LOGGER.debug("Collected files in [%s] and built up [%s] of metadata" % (print_time(time.time() - start_time), print_size(sys.getsizeof(meta))))
+        LOGGER.debug("Collected and hashed files in [%s] and built up [%s] of metadata" % (print_time(time.time() - start_time), print_size(sys.getsizeof(meta))))
         all_files += meta
 
     # note: this is needed because files is used both in the `print_collecting_ETA` and the `thread_process_duplicates`
