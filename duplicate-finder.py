@@ -340,7 +340,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                 items.append(item)
 
     LOGGER.info(
-        "Thread [{}] finished processing chunk [{},{}] of [{}] files with [{}] cached files in [{}] generating [{}] metadata".format(
+        "Thread [{}] finished hashing chunk [{},{}] of [{}] files with [{}] cached files in [{}] generating [{}] metadata".format(
             index, lower_limit, upper_limit, len(METRIC["items"]), len(cached_files),
             print_time(time.time() - start_time), print_size(sys.getsizeof(items))))
 
