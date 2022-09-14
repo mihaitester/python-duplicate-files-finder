@@ -186,30 +186,30 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
 
     # todo: BUG: duplicates will be reinserted in the list of duplicates, need to check if a file was already found as duplicated, then it should not be added to the list again
     # for i in range(len(items) - 1):
-    i = index
+    a = index
     # note: because the files are sorted on size, need to figure out how to trim the list if duplicates are found
     end = len(changing_indexes) - 1
-    while i < end:
+    while a < end:
     # for i in range(lower_limit, upper_limit):
     #     processed = False
         with THREAD_LOCK:
             # print_duplicates_ETA()
-            THREAD_PROGRESS[index] = changing_indexes[i]
+            THREAD_PROGRESS[index] = changing_indexes[a]
             # if "duplicated" not in FILES[i].keys():
             # processed = THREAD_FILES_PROCESSED[i]
-        if not THREAD_FILES_PROCESSED[changing_indexes[i]]:
+        if not THREAD_FILES_PROCESSED[changing_indexes[a]]:
         # if FILES[i] != None:
             # todo: optimize search, by comparing only files that have the same size, which would run faster
             # if items[i] not in all_duplicates:
             duplicates_for_file = []
-            duplicates_for_file.append(FILES[changing_indexes[i]])
+            duplicates_for_file.append(FILES[changing_indexes[a]])
             duplicates_indexes = []
             # duplicates_for_file = [FILES[i]]  # [comment1]: consider the 0 index of each list as the original file
             # duplicates_for_file = []  # [comment1]: consider the 0 index of each list as the original file
             # todo: because this is incremental select search, first threads have a bigger chunk to process than subsequent threads, hence need to either change this search, or redistribute workload to finishing threads - dynamic loading for thread pooling
-            if FILES[changing_indexes[i]]["size"] != 0:
+            if FILES[changing_indexes[a]]["size"] != 0:
                 # for j in range(len(FILES)): # note: going through all the elements will create a list of duplicates for each file
-                for j in range(changing_indexes[i]+1, changing_indexes[i+1]):  # note: going through all the elements will create a list of duplicates for each file
+                for j in range(changing_indexes[a]+1, changing_indexes[a+1]):  # note: going through all the elements will create a list of duplicates for each file
                 # for j in range(i+1, len(items)):  # note: [comment3] if already marked duplicates its pointless to backcheck files that were processed already
                 #     if "duplicated" not in FILES[j].keys():
                 #     if FILES[j] != None:
@@ -218,16 +218,16 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
                     #     processed = THREAD_FILES_PROCESSED[j]
                     if not THREAD_FILES_PROCESSED[j]:
                         # print("{} - {}".format(i,j))
-                        if changing_indexes[i] != j: # important: because of using multi-threading the first thread to inject a line of duplicates wins
-                            if FILES[changing_indexes[i]]["size"] < FILES[j]["size"]:  # note: [comment3] thanks to presorting of items, can skip comparisons that eat time, in this case sorted list increasing
+                        if changing_indexes[a] != j: # important: because of using multi-threading the first thread to inject a line of duplicates wins
+                            if FILES[changing_indexes[a]]["size"] < FILES[j]["size"]:  # note: [comment3] thanks to presorting of items, can skip comparisons that eat time, in this case sorted list increasing
                             # if items[i]["size"] < items[j]["size"] or items[i]["size"] > items[j]["size"]: # note: [comment3] thanks to presorting of items, can skip comparisons that eat time
                                 break
-                            if FILES[changing_indexes[i]]["size"] > FILES[j]["size"]:  # note: [comment3] thanks to presorting of items, can skip comparisons that eat time, in this case sorted list increasing
+                            if FILES[changing_indexes[a]]["size"] > FILES[j]["size"]:  # note: [comment3] thanks to presorting of items, can skip comparisons that eat time, in this case sorted list increasing
                             # if items[i]["size"] < items[j]["size"] or items[i]["size"] > items[j]["size"]: # note: [comment3] thanks to presorting of items, can skip comparisons that eat time
                                 continue
-                            if FILES[changing_indexes[i]]["size"] == FILES[j]["size"]:
-                                if FILES[changing_indexes[i]]["checksum"] == FILES[j]["checksum"]:
-                                    LOGGER.debug("Found duplicate [{}] for file [{}]".format(FILES[j]["path"], FILES[changing_indexes[i]]["path"]))
+                            if FILES[changing_indexes[a]]["size"] == FILES[j]["size"]:
+                                if FILES[changing_indexes[a]]["checksum"] == FILES[j]["checksum"]:
+                                    LOGGER.debug("Found duplicate [{}] for file [{}]".format(FILES[j]["path"], FILES[changing_indexes[a]]["path"]))
                                     duplicates_for_file.append(FILES[j])
                                     duplicates_indexes.append(j) # note: this should improve performance a lot if after each file that gets processed we de-index its duplicates so the search space is smaller
             else:
@@ -256,13 +256,13 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
                         # FILES.pop(duplicates_indexes[k])
                         # FILES[duplicates_indexes[k]]["duplicated"] = FILES[i]
                         # FILES[duplicates_indexes[k]] = None
-                    THREAD_FILES_PROCESSED[changing_indexes[i]] = True
+                    THREAD_FILES_PROCESSED[changing_indexes[a]] = True
                         # duplicates.update({items[i]["path"]:duplicates_for_file}) # observation: execution time drastically increased when working with `dict` instead of `list`, apparently each `dict.update` slows down dramatically the script, time increased from `40min` to over `2hours`
                         # all_duplicates.append(duplicates_for_file)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
                         # obj = {items[i]:duplicates_for_file}
                         # duplicates.update(obj)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
                     THREAD_FILES_DUPLICATES[index] += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
-        i += THREAD_COUNT
+        a += THREAD_COUNT
 
     with THREAD_LOCK:
         THREAD_FINISHED[index] = True
