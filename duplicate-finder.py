@@ -209,7 +209,11 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
             # todo: because this is incremental select search, first threads have a bigger chunk to process than subsequent threads, hence need to either change this search, or redistribute workload to finishing threads - dynamic loading for thread pooling
             if FILES[changing_indexes[a]]["size"] != 0:
                 # for j in range(len(FILES)): # note: going through all the elements will create a list of duplicates for each file
-                for j in range(changing_indexes[a]+1, changing_indexes[a+1]):  # note: going through all the elements will create a list of duplicates for each file
+                last_item = changing_indexes[a+1]
+                if a == len(changing_indexes) - 1:
+                    # need to iterate the remaining files, from the last changing index to the end of items
+                    last_item = len(items)
+                for j in range(changing_indexes[a]+1, last_item):  # note: going through all the elements will create a list of duplicates for each file
                 # for j in range(i+1, len(items)):  # note: [comment3] if already marked duplicates its pointless to backcheck files that were processed already
                 #     if "duplicated" not in FILES[j].keys():
                 #     if FILES[j] != None:
@@ -218,6 +222,7 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
                     #     processed = THREAD_FILES_PROCESSED[j]
                     if not THREAD_FILES_PROCESSED[j]:
                         # print("{} - {}".format(i,j))
+                        # todo: this is where the bug lies, similar sized files can contain duplicates for different sets, basically 2 different files of same size can have different duplicates, and current algorithm would skip duplicate finding for the second or n-th file
                         if changing_indexes[a] != j: # important: because of using multi-threading the first thread to inject a line of duplicates wins
                             if FILES[changing_indexes[a]]["size"] < FILES[j]["size"]:  # note: [comment3] thanks to presorting of items, can skip comparisons that eat time, in this case sorted list increasing
                             # if items[i]["size"] < items[j]["size"] or items[i]["size"] > items[j]["size"]: # note: [comment3] thanks to presorting of items, can skip comparisons that eat time
@@ -248,7 +253,7 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
                 # if len(duplicates_for_file) > 0:
 
                 duplicates.append(duplicates_for_file)
-                duplicates_indexes.sort(reverse=True)
+                # duplicates_indexes.sort(reverse=True)
 
                 with THREAD_LOCK:
                     for k in range(len(duplicates_indexes)):
@@ -262,6 +267,7 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
                         # obj = {items[i]:duplicates_for_file}
                         # duplicates.update(obj)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
                     THREAD_FILES_DUPLICATES[index] += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
+
         a += THREAD_COUNT # important: this is the [number_of_threads * k + index] chunking which ensures no 2 threads process the same chunk
 
     with THREAD_LOCK:
@@ -304,7 +310,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                 # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
                 # if file not in [x["path"] for x in cached_files]:  # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
                 if file not in cached_paths:  # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
-                    LOGGER.debug("Found uncached file [{}]".format(file))
+                    LOGGER.debug("Found unhashed file [{}]".format(file))
                     item = {'path': file,
                             'size': os.path.getsize(file),
                             'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
@@ -313,7 +319,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                     PRINT_FILES_PROCESSED_SIZE += item['size']
                     items.append(item)
                 else:
-                    LOGGER.debug("Skipped already indexed file [{}]".format(file))
+                    LOGGER.debug("Skipped already hashed file [{}]".format(file))
                     PRINT_FILES_CACHED_SKIPPED += 1  # this means file is already indexed so we skip rehashing it
                     pass
     else:
@@ -329,7 +335,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                 # todo: ideally build a tree for faster searches and index files based on size - do binary search over it
                 # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
                 # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
-                LOGGER.debug("Caching file [{}]".format(file))
+                LOGGER.debug("Hashing file [{}]".format(file))
                 item = {'path': file,
                         'size': os.path.getsize(file),
                         'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
