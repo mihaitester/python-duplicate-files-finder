@@ -22,6 +22,11 @@ For example processing `15K` files which take up `212GB` HDD takes roughly `40 m
       - `thread2`: will iterate through files using multiples of `number_of_threads * K + 2`
       - `thread3`: will iterate through files using multiples of `number_of_threads * K + 3`
         - and so on, where `K` is an arbitrary number
+      - in order to speed up the chunking process, and because sorting the list of files based on size allows us to see duplicates straight from the sorting
+        - this means that files which have same size, have a great chance of being duplicates, while files with different sizes have guaranteed no chance of being duplicates
+        - so by processing and finding out which indexes have files that change size we get `changing_indexes` list which is passed to all threads
+        - then each thread applies the formula described above for chunking, ensuring no thread overlaps with another thread when doing comparisons
+            - this should greatly speed things up, as no `LOCK`s would be needed to ensure consistency of data between threads, as the algorithm itself ensures the consistency
     - while this is executing a printer thread is running in the background and displaying updates every `60 seconds`
 5. Script will dump the duplicates if `-j` flag is provided
 6. Script will create links from duplicates to duplicated file if `-l` flag is provided
@@ -103,7 +108,7 @@ c:\users\notarealuser\downloads d:\ -j -c -k 2022-08-20_21-24-22_duplicate-finde
 >python duplicate-finder.py c:\users\notarealuser\downloads d:\__code__ -j -c
 ```commandline
 MainThread__2022-09-12_13-09-21.131 === func:[collect_metrics_in_path] took: [0days 00:00:00.020]
-MainThread__2022-09-12_13-09-21.131 Path [c:\users\mihai\downloads] contains [1] folders and [228] items, totaling [0.00TB 1.31GB 313.11MB 115.71KB 727.00B]
+MainThread__2022-09-12_13-09-21.131 Path [c:\users\notarealuser\downloads] contains [1] folders and [228] items, totaling [0.00TB 1.31GB 313.11MB 115.71KB 727.00B]
 MainThread__2022-09-12_13-09-24.391 === func:[collect_metrics_in_path] took: [0days 00:00:03.259]
 MainThread__2022-09-12_13-09-24.391 Path [d:\__code__] contains [6172] folders and [44780] items, totaling [0.00TB 1.15GB 149.25MB 260.69KB 705.00B]
 MainThread__2022-09-12_13-09-24.391 === func:[collect_all_metrics] took: [0days 00:00:03.279]
@@ -132,7 +137,7 @@ MainThread__2022-09-12_13-18-13.492 Executed script in [0days 00:08:52.391]
 >python duplicate-finder.py c:\users\notarealuser\downloads d:\__code__ -j -c -p
 ```commandline
 MainThread__2022-09-12_13-23-07.100 === func:[collect_metrics_in_path] took: [0days 00:00:00.021]
-MainThread__2022-09-12_13-23-07.100 Path [c:\users\mihai\downloads] contains [1] folders and [228] items, totaling [0.00TB 1.31GB 313.11MB 114.56KB 572.00B]
+MainThread__2022-09-12_13-23-07.100 Path [c:\users\notarealuser\downloads] contains [1] folders and [228] items, totaling [0.00TB 1.31GB 313.11MB 114.56KB 572.00B]
 MainThread__2022-09-12_13-23-10.547 === func:[collect_metrics_in_path] took: [0days 00:00:03.447]
 MainThread__2022-09-12_13-23-10.547 Path [d:\__code__] contains [6172] folders and [44782] items, totaling [0.00TB 1.16GB 168.71MB 731.08KB 77.00B]
 MainThread__2022-09-12_13-23-10.547 === func:[collect_all_metrics] took: [0days 00:00:03.469]

@@ -262,7 +262,7 @@ def thread_process_duplicates(index, items, changing_indexes, start_time=time.ti
                         # obj = {items[i]:duplicates_for_file}
                         # duplicates.update(obj)  # based on [comment1], only if a list of duplicates contains more than 1 element, then there are duplicates
                     THREAD_FILES_DUPLICATES[index] += len(duplicates_for_file) - 1 # based on [comment1], first item in a sequence of duplicates is an original
-        a += THREAD_COUNT
+        a += THREAD_COUNT # important: this is the [number_of_threads * k + index] chunking which ensures no 2 threads process the same chunk
 
     with THREAD_LOCK:
         THREAD_FINISHED[index] = True
