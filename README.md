@@ -103,12 +103,13 @@ c:\users\notarealuser\downloads d:\ -j -c -k 2022-08-20_21-24-22_duplicate-finde
 ```commandline
 c:\users\notarealuser\downloads d:\ -j -c -k 2022-08-20_21-24-22_duplicate-finder.cache
 ```
-
+---
 # Time comparison
 - Remarks:
   - plus 3 files difference of the logs is from the `.cache` and the `.json` files generated during previous run, which are duplicates of previous runs.
   - expected a bigger time improvement in between the executions however cannot skip comparing files, or double sets of duplicates having same size but different content will be missed
->python duplicate-finder.py c:\users\notarealuser\downloads d:\__code__ -j -c
+
+- ```python duplicate-finder.py c:\users\notarealuser\downloads d:\__code__ -j -c```
 ```commandline
 MainThread__2022-09-14_20-36-40.177 === func:[collect_metrics_in_path] took: [0days 00:00:00.018]
 MainThread__2022-09-14_20-36-40.178 Path [c:\users\notarealuser\downloads] contains [2] folders and [249] items, totaling [0.00TB 1.31GB 317.01MB 11.29KB 301.00B]
@@ -137,10 +138,11 @@ MainThread__2022-09-14_20-45-15.297 Dumping duplicates file [2022-09-14_20-45-15
 MainThread__2022-09-14_20-45-18.162 === func:[dump_duplicates] took: [0days 00:00:02.864]
 MainThread__2022-09-14_20-45-18.162 Executed script in [0days 00:08:38.007]
 ```
->python duplicate-finder.py c:\users\notarealuser\downloads d:\__code__ -j -c -p
+
+- ```python duplicate-finder.py c:\users\notarealuser\downloads d:\__code__ -j -c -p```
 ```commandline
 MainThread__2022-09-14_23-33-49.340 === func:[collect_metrics_in_path] took: [0days 00:00:00.017]
-MainThread__2022-09-14_23-33-49.340 Path [c:\users\mihai\downloads] contains [2] folders and [249] items, totaling [0.00TB 1.31GB 317.01MB 11.28KB 290.00B]
+MainThread__2022-09-14_23-33-49.340 Path [c:\users\notarealuser\downloads] contains [2] folders and [249] items, totaling [0.00TB 1.31GB 317.01MB 11.28KB 290.00B]
 MainThread__2022-09-14_23-33-52.650 === func:[collect_metrics_in_path] took: [0days 00:00:03.309]
 MainThread__2022-09-14_23-33-52.650 Path [d:\__code__] contains [6179] folders and [44905] items, totaling [0.00TB 1.95GB 971.00MB 1.55KB 561.00B]
 MainThread__2022-09-14_23-33-52.650 === func:[collect_all_metrics] took: [0days 00:00:03.326]
