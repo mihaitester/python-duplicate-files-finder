@@ -330,7 +330,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                         item = {'path': file,
                             'size': size,
                             'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                            'checksum': hashlib.md5(file).digest().decode(ENCODING)
+                            'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING)
                             }
                     else:
                         item = {'path': file,
@@ -363,7 +363,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                     item = {'path': file,
                         'size': size,
                         'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                        'checksum': hashlib.md5(file).digest().decode(ENCODING)
+                        'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING)
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         }
                 else:
@@ -718,7 +718,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                             item = {'path': file,
                                     'size': size,
                                     'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                                    'checksum': hashlib.md5(file).digest().decode(ENCODING)
+                                    'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING)
                                     }
                         else:
                             item = {'path': file,
@@ -740,7 +740,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                         item = {'path': file,
                                 'size': size,
                                 'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                                'checksum': hashlib.md5(file).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
+                                'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
                                 }
                     else:
                         item = {'path': file,
