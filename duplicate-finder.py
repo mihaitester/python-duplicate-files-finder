@@ -407,7 +407,7 @@ def dump_cache(items=[], path=""):
     cache_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
                                 ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".cache")
 
-    prev_items = []
+    prev_items = {}
     last_cache = ""
     try:
         _path = path + "\\*.cache"
@@ -415,20 +415,35 @@ def dump_cache(items=[], path=""):
         last_cache = sorted(glob.glob(_path), reverse=True)[0]
         with open(last_cache, "r", encoding=ENCODING) as readfile:
             prev_items = json.loads(readfile.read())
-        LOGGER.info("Loaded previous cache [{}]".format(last_cache))
+        LOGGER.info("Loaded previous cache [{}] containing [{}] items".format(last_cache, len(prev_items)))
     except:
         pass
 
-    if items != prev_items:
+    #LOGGER.info("items: [{}] prev_items: [{}] difference [{}]".format(len(items), len(prev_items), abs(len(items) - len(prev_items))))
+
+    # extra_files = []
+    # for f in items:
+    #     if f["path"] not in [ x["path"] for x in prev_items]:
+    #         LOGGER.info("Found different file [{}] from previous cache.".format(f["path"]))
+    #         extra_files += f["path"]
+    
+    # note: cannot redump the cache file, because its hash file gets changed, and cannot use +1 file, because there are multiple files generated depending on flags, need to find out a solution
+    # note: simply check if there are more then 10 new files, then dump new cache, otherwise do not spam folder with new files
+    # if len(extra_files) > 10:
+    if len(items) > 10:
+        LOGGER.info("Found more than 10 extra files, redumping cache.")
         try:
-            LOGGER.info("Dumping cache [{}]".format(cache_file))
-            with open(os.path.join(path, cache_file), "w", encoding=ENCODING) as dumpfile:
+            file = os.path.join(path, cache_file)
+
+            LOGGER.info("Dumping cache [{}]".format(file))
+            with open(file, "w", encoding=ENCODING) as dumpfile:
                 dumpfile.write(json.dumps(items, indent=4))
-            LOGGER.debug("Dumped cache [{}]".format(cache_file))
+            LOGGER.debug("Dumped cache [{}]".format(file))
+
         except Exception as ex:
             LOGGER.error("Failed to dump cache [{}] with exception [{}]".format(cache_file), ex.message)
     else:
-        LOGGER.info("Refused to dump [{}] files as there is a duplicate file [{}] containing them already.".format(len(items), last_cache))
+        LOGGER.info("Refused to dump again [{}] files as there are only [{}] extra files uncached.".format(len(prev_items), len(items)))
 
 
 @timeit
@@ -994,8 +1009,8 @@ def main():
     # todo: implement progressive threading, meaning interrupt single thread and spawn more threads over the remaining data as time progresses
     files = collect_all_files(args.paths, args.hidden, metrics, cached_files, cached_paths, args.parallelize, args)
 
-    if args.cache:
-        dump_cache(files)
+    # if args.cache:
+        # dump_cache(files)
 
     zero_sized_files = [ x for x in files if x["size"] < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH ] # todo: need to deal somehow with these files that pollute disks
     LOGGER.info("Found [{}] files that are smaller in size than [{}]".format(len(zero_sized_files), MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH))
