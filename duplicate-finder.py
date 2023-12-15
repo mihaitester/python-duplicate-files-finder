@@ -325,8 +325,16 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                 # if file not in [x["path"] for x in cached_files]:  # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
                 if file not in cached_paths:  # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
                     LOGGER.debug("Found unhashed file [{}]".format(file))
-                    item = {'path': file,
-                            'size': os.path.getsize(file),
+                    size = os.path.getsize(file)
+                    if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                        item = {'path': file,
+                            'size': size,
+                            'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+                            'checksum': hashlib.md5(file).digest().decode(ENCODING)
+                            }
+                    else:
+                        item = {'path': file,
+                            'size': size,
                             'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
                             'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
                             }
@@ -350,8 +358,17 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                 # todo: maybe optimize cache this way and do binary search using file size - for huge lists of files above 100K it could optimize the search speeds
                 # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
                 LOGGER.debug("Hashing file [{}]".format(file))
-                item = {'path': file,
-                        'size': os.path.getsize(file),
+                size = os.path.getsize(file)
+                if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                    item = {'path': file,
+                        'size': size,
+                        'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+                        'checksum': hashlib.md5(file).digest().decode(ENCODING)
+                        # todo: figure out elevation for files that are in system folders does not work even if console is admin
+                        }
+                else:
+                    item = {'path': file,
+                        'size': size,
                         'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
                         'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
@@ -376,6 +393,7 @@ def dump_cache(items=[]):
     :param items:
     :return:
     """
+    # todo: need to change this to use the path of the disk drives which are getting parsed
     cache_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
                                 ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".cache")
     try:
@@ -396,6 +414,7 @@ def load_cache(cache_file=""):
     cached_paths = []
     try:
         LOGGER.info("Loading cache [{}]".format(cache_file))
+        # todo: change this to the path of the disk drives which are getting parsed
         with open(cache_file, "r", encoding=ENCODING) as readfile:
             items = json.loads(readfile.read())
         LOGGER.debug("Loaded cache [{}]".format(cache_file))
@@ -694,15 +713,16 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                     if file not in [ x["path"] for x in cached_files ]: # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
                         LOGGER.debug("Found unhashed file [{}]".format(file))
                         # found that files containing 0 Kbytes are getting identified as duplicates despite them not being so, in case of similar size need to change checksum to be used on filename
-                        if os.path.getsize(file) < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                        size = os.path.getsize(file)
+                        if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
                             item = {'path': file,
-                                    'size': os.path.getsize(file),
+                                    'size': size,
                                     'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
                                     'checksum': hashlib.md5(file).digest().decode(ENCODING)
                                     }
                         else:
                             item = {'path': file,
-                                'size': os.path.getsize(file),
+                                'size': size,
                                 'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
                                 'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
                                 }
@@ -715,15 +735,16 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                 else:
                     LOGGER.debug("Hashing file [{}]".format(file))
                     # found that files containing 0 Kbytes are getting identified as duplicates despite them not being so, in case of similar size need to change checksum to be used on filename
-                    if os.path.getsize(file) < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                    size = os.path.getsize(file)
+                    if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
                         item = {'path': file,
-                                'size': os.path.getsize(file),
+                                'size': size,
                                 'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
                                 'checksum': hashlib.md5(file).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
                                 }
                     else:
                         item = {'path': file,
-                            'size': os.path.getsize(file),
+                            'size': size,
                             'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
                             'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
                             }
