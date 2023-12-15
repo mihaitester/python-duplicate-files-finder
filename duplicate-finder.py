@@ -330,7 +330,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                         item = {'path': file,
                             'size': size,
                             'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                            'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING)
+                            'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
                             }
                     else:
                         item = {'path': file,
@@ -363,7 +363,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                     item = {'path': file,
                         'size': size,
                         'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                        'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING)
+                        'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         }
                 else:
@@ -388,7 +388,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
 
 
 @timeit
-def dump_cache(items=[]):
+def dump_cache(items=[], path=""):
     """
     :param items:
     :return:
@@ -400,7 +400,7 @@ def dump_cache(items=[]):
                                 ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".cache")
     try:
         LOGGER.info("Dumping cache [{}]".format(cache_file))
-        with open(cache_file, "w", encoding=ENCODING) as dumpfile:
+        with open(os.path.join(path,cache_file), "w", encoding=ENCODING) as dumpfile:
             dumpfile.write(json.dumps(items, indent=4))
         LOGGER.debug("Dumped cache [{}]".format(cache_file))
     except Exception as ex:
@@ -408,16 +408,16 @@ def dump_cache(items=[]):
 
 
 @timeit
-def load_cache(cache_file=""):
+def load_cache(cache_file="", path=""):
     # todo: integrate this with collecting files, if the file is already indexed then its pointless to compute its cache - this could optimize a lot if there are huge files, for which computing the hash takes longer
     #  for a lot of small files its potentially better to no use cache, and have script recompute hashes than double check hash is not computed already
     # global files
     items = []
-    cached_paths = []
+    cached_paths = [] # todo: need to understand what is this used for
     try:
         LOGGER.info("Loading cache [{}]".format(cache_file))
         # todo: change this to the path of the disk drives which are getting parsed
-        with open(cache_file, "r", encoding=ENCODING) as readfile:
+        with open(os.path.join(path,cache_file), "r", encoding=ENCODING) as readfile:
             items = json.loads(readfile.read())
         LOGGER.debug("Loaded cache [{}]".format(cache_file))
     except Exception as ex:
@@ -721,7 +721,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                             item = {'path': file,
                                     'size': size,
                                     'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                                    'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING)
+                                    'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
                                     }
                         else:
                             item = {'path': file,
@@ -743,7 +743,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                         item = {'path': file,
                                 'size': size,
                                 'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
-                                'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
+                                'checksum': hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin, todo: [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
                                 }
                     else:
                         item = {'path': file,
@@ -785,13 +785,19 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[], cache
     all_files = cached_files # note: adding cached files directly to files index
     for path in paths:
         metric = [x for x in metrics if x["path"] == path][0]
-
         METRIC = metric
+
+        # todo: need to load local cache file if it exists
+        if args.kache:
+            cached_files += load_cache(path=path)
+            all_files += cached_files
 
         LOGGER.debug("Collecting and hashing files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
         meta = collect_files_in_path(path, hidden, METRIC, cached_files, cached_paths, parallelize)
         
         # todo: dump a cache file in the path - need to load also caches if they exist here
+        if args.cache:
+            dump_cache(meta, path=path)
 
         LOGGER.debug("Collected and hashed files in [%s] and built up [%s] of metadata" % (print_time(time.time() - start_time), print_size(sys.getsizeof(meta))))
         all_files += meta
