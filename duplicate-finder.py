@@ -326,7 +326,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                 if file not in cached_paths:  # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
                     LOGGER.debug("Found unhashed file [{}]".format(file))
                     size = os.path.getsize(file)
-                    checksum = hashlib.md5()
+                    checksum = hashlib.md5("").digest().decode(ENCODING)
                     try:
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
@@ -363,7 +363,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                 # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
                 LOGGER.debug("Hashing file [{}]".format(file))
                 size = os.path.getsize(file)
-                checksum = hashlib.md5()
+                checksum = hashlib.md5("").digest().decode(ENCODING)
                 try:
                     # todo: figure out elevation for files that are in system folders does not work even if console is admin
                     # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
@@ -723,7 +723,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                         LOGGER.debug("Found unhashed file [{}]".format(file))
                         # found that files containing 0 Kbytes are getting identified as duplicates despite them not being so, in case of similar size need to change checksum to be used on filename
                         size = os.path.getsize(file)
-                        checksum = hashlib.md5()
+                        checksum = hashlib.md5("").digest().decode(ENCODING)
                         try:
                             # todo: figure out elevation for files that are in system folders does not work even if console is admin
                             # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
@@ -749,7 +749,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                     LOGGER.debug("Hashing file [{}]".format(file))
                     # found that files containing 0 Kbytes are getting identified as duplicates despite them not being so, in case of similar size need to change checksum to be used on filename
                     size = os.path.getsize(file)
-                    checksum = hashlib.md5()
+                    checksum = hashlib.md5("").digest().decode(ENCODING)
                     try:
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]

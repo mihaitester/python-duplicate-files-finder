@@ -222,3 +222,9 @@ MainThread__2022-09-14_23-40-39.719 Executed script in [0days 00:06:50.400]
 2. need to add a config file which can replace the GLOBAL variables, allowing for better control of script 
     - for example: this is useful for configuring extensions of index files, so that there is no collision with other files used by other tools 
     - take `.cache` files which could conflict with filenames used by some other tools
+
+3. need to recycle threads and split again the remaining chunks between threads when one thread finishes
+    - one idea would be to split again the chunks of a thread and start the second thread from the end of the initial chunk
+    - then as more and more threads finish they get to start from the back end
+        - problem is then after 1 cycle of promoted threads, how to split the remaining chunks so that remaining threads still work
+            - could apply some sort of fractal fragmenting - meaning split again each initial chunk into equal sized chunks
