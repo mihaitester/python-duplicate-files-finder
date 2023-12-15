@@ -17,6 +17,8 @@ import threading
 import multiprocessing
 
 
+
+MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH = 256
 DATETIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
 ENCODING = "ISO-8859-1"  # help: [ https://www.codegrepper.com/code-examples/python/UnicodeDecodeError%3A+%27utf-16-le%27+codec+can%27t+decode+bytes+in+position+60-61%3A+illegal+UTF-16+surrogate ]
 
@@ -691,7 +693,15 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                 if len(cached_files):
                     if file not in [ x["path"] for x in cached_files ]: # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
                         LOGGER.debug("Found unhashed file [{}]".format(file))
-                        item = {'path': file,
+                        # found that files containing 0 Kbytes are getting identified as duplicates despite them not being so, in case of similar size need to change checksum to be used on filename
+                        if os.path.getsize(file) < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                            item = {'path': file,
+                                    'size': os.path.getsize(file),
+                                    'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+                                    'checksum': hashlib.md5(file).digest().decode(ENCODING)
+                                    }
+                        else:
+                            item = {'path': file,
                                 'size': os.path.getsize(file),
                                 'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
                                 'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
@@ -704,7 +714,15 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                         pass
                 else:
                     LOGGER.debug("Hashing file [{}]".format(file))
-                    item = {'path': file,
+                    # found that files containing 0 Kbytes are getting identified as duplicates despite them not being so, in case of similar size need to change checksum to be used on filename
+                    if os.path.getsize(file) < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                        item = {'path': file,
+                                'size': os.path.getsize(file),
+                                'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
+                                'checksum': hashlib.md5(file).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
+                                }
+                    else:
+                        item = {'path': file,
                             'size': os.path.getsize(file),
                             'time': datetime.datetime.fromtimestamp(os.path.getctime(file)).strftime(DATETIME_FORMAT),
                             'checksum': hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING) # todo: figure out elevation for files that are in system folders does not work even if console is admin
@@ -788,6 +806,7 @@ def collect_metrics_in_path(path="", hidden=False):
 @timeit
 def collect_all_metrics(paths=[], hidden=False):
     metrics = []
+    LOGGER.info("Collecting metrics data for estimations - this can take a while!")
     for path in paths:
         metric = collect_metrics_in_path(path, hidden)
         metrics.append(metric)
@@ -817,6 +836,10 @@ def print_size(size):
     gbytes = size % 1024
     size /= 1024
     tbytes = size
+    # note: trying to fix problem with TB showing a number like 1.8TB and 800GB -> which should be displayed as 2.6Tb and 0Gb instead
+    if tbytes > 0:
+        tbytes = tbytes + (gbytes / 1024)
+        gbytes = gbytes / 1024
     return "%.2fTB %.2fGB %.2fMB %.2fKB %.2fB" % (tbytes, gbytes, mbytes, kbytes, bytes)
 
 
