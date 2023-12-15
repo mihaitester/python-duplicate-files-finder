@@ -399,18 +399,36 @@ def dump_cache(items=[], path=""):
     :param items:
     :return:
     """
+    # todo: to stop dumping new cache files, need to include the cache file dumped inside the cache itself, post-patching files
+
     # todo: need to change this to use the path of the disk drives which are getting parsed, problem is that cache is maintained across multiple disks for comparisons
     #cache_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
     #                            ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".cache")
     cache_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
                                 ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".cache")
+
+    prev_items = []
+    last_cache = ""
     try:
-        LOGGER.info("Dumping cache [{}]".format(cache_file))
-        with open(os.path.join(path,cache_file), "w", encoding=ENCODING) as dumpfile:
-            dumpfile.write(json.dumps(items, indent=4))
-        LOGGER.debug("Dumped cache [{}]".format(cache_file))
-    except Exception as ex:
-        LOGGER.error("Failed to dump cache [{}] with exception [{}]".format(cache_file), ex.message)
+        _path = path + "\\*.cache"
+        LOGGER.info("Loading previous cache file if it exists [{}]".format(_path))
+        last_cache = sorted(glob.glob(_path), reverse=True)[0]
+        with open(last_cache, "r", encoding=ENCODING) as readfile:
+            prev_items = json.loads(readfile.read())
+        LOGGER.info("Loaded previous cache [{}]".format(last_cache))
+    except:
+        pass
+
+    if items != prev_items:
+        try:
+            LOGGER.info("Dumping cache [{}]".format(cache_file))
+            with open(os.path.join(path, cache_file), "w", encoding=ENCODING) as dumpfile:
+                dumpfile.write(json.dumps(items, indent=4))
+            LOGGER.debug("Dumped cache [{}]".format(cache_file))
+        except Exception as ex:
+            LOGGER.error("Failed to dump cache [{}] with exception [{}]".format(cache_file), ex.message)
+    else:
+        LOGGER.info("Refused to dump [{}] files as there is a duplicate file [{}] containing them already.".format(len(items), last_cache))
 
 
 @timeit
@@ -420,14 +438,30 @@ def load_cache(cache_file="", path=""):
     # global files
     items = []
     cached_paths = [] # todo: need to understand what is this used for
-    try:
-        LOGGER.info("Loading cache [{}]".format(cache_file))
-        # todo: change this to the path of the disk drives which are getting parsed
-        with open(os.path.join(path,cache_file), "r", encoding=ENCODING) as readfile:
-            items = json.loads(readfile.read())
-        LOGGER.debug("Loaded cache [{}]".format(cache_file))
-    except Exception as ex:
-        LOGGER.error("Failed to load cache [{}] with exception [{}]".format(cache_file, str(ex)))
+    
+    if cache_file != "":
+        # note: loading from exact file
+        try:
+            LOGGER.info("Loading cache [{}]".format(cache_file))
+            # todo: change this to the path of the disk drives which are getting parsed
+            with open(os.path.join(path, cache_file), "r", encoding=ENCODING) as readfile:
+                items = json.loads(readfile.read())
+            LOGGER.info("Loaded cache [{}]".format(cache_file))
+        except Exception as ex:
+            LOGGER.error("Failed to load cache [{}] with exception [{}]".format(cache_file, str(ex)))
+
+    if path != "":
+        # note: search for `.cache` files and add the latest file as cache file
+        # todo: test the file is correct and represents the `.json` format of the datastructure expected
+        try:
+            _path = path + "\\*.cache"
+            LOGGER.info("Searching for cache files in path [{}]".format(_path))
+            last_cache = sorted(glob.glob(_path), reverse=True)[0]
+            with open(last_cache, "r", encoding=ENCODING) as readfile:
+                items = json.loads(readfile.read())
+            LOGGER.info("Loaded cache [{}]".format(last_cache))
+        except Exception as ex:
+            LOGGER.error("Failed to load cache from path [{}] with exception [{}]".format(path, str(ex)))
 
     # validate that cached files can be found on disk, if not strip the cache of files not found
     LOGGER.debug("Stripping files from cache")
@@ -803,14 +837,18 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[], cache
 
         # todo: need to load local cache file if it exists
         if args.kache:
-            cached_files += load_cache(path=path)
-            all_files += cached_files
+            _cached_files, _cached_paths = load_cache(path=path)
+            cached_files += _cached_files
+            cached_paths += _cached_paths
+            # note: this is a bug, need to parse files regardless if they are already cached, do not change the list from outside
+            #all_files += cached_files
 
         LOGGER.debug("Collecting and hashing files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
         meta = collect_files_in_path(path, hidden, METRIC, cached_files, cached_paths, parallelize)
         
         # todo: dump a cache file in the path - need to load also caches if they exist here
         if args.cache:
+            # todo: dump a new cache file, only if there are changes, otherwise leave the old file
             dump_cache(meta, path=path)
 
         LOGGER.debug("Collected and hashed files in [%s] and built up [%s] of metadata" % (print_time(time.time() - start_time), print_size(sys.getsizeof(meta))))
@@ -818,6 +856,8 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[], cache
 
     # note: this is needed because files is used both in the `print_collecting_ETA` and the `thread_process_duplicates`
     # todo: sepparate the context of `FILES` so that it is used only once
+    # with open("raw_dump.txt", "w") as writefile:
+    #     writefile.write(json.dumps(all_files, indent=4))
     all_files.sort(key=lambda x: x["size"])
     FILES = copy.deepcopy(all_files)
 
@@ -907,8 +947,11 @@ def menu():
                         help='flag indicating that a json containing duplicate file paths will be generated')
     parser.add_argument('-c', '--cache', action='store_true', required=False,
                         help='flag indicating that a cache file containing the indexes should be generated')
-    parser.add_argument('-k', '--kache', required=False,
+    parser.add_argument('-k', '--kache', action='store_true', required=False,
+                        help='flag indicating that script should search for `.cache` files and attempt to load the index data from them')
+    parser.add_argument('-f', '--kfile', required=False,
                         help='parameter containing the path to a cache file to be loaded so the processing of files is faster')
+    
     parser.add_argument('-l', '--links', action='store_true', required=False,
                         help='flag indicating that a symbolic links should be created from duplicate to original file')
     # todo
@@ -944,8 +987,8 @@ def main():
 
     cached_files = []
     cached_paths = []
-    if args.kache:
-        cached_files, cached_paths = load_cache(args.kache)
+    if args.kfile:
+        cached_files, cached_paths = load_cache(args.kfile)
 
     metrics = collect_all_metrics(args.paths, args.hidden)
     # todo: implement progressive threading, meaning interrupt single thread and spawn more threads over the remaining data as time progresses
