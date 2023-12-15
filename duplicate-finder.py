@@ -783,7 +783,7 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
 
 
 @timeit
-def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[], cached_paths=[], parallelize=True):
+def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[], cached_paths=[], parallelize=True, args={}):
     """
     :param paths:
     :param hidden:
@@ -949,7 +949,7 @@ def main():
 
     metrics = collect_all_metrics(args.paths, args.hidden)
     # todo: implement progressive threading, meaning interrupt single thread and spawn more threads over the remaining data as time progresses
-    files = collect_all_files(args.paths, args.hidden, metrics, cached_files, cached_paths, args.parallelize)
+    files = collect_all_files(args.paths, args.hidden, metrics, cached_files, cached_paths, args.parallelize, args)
 
     if args.cache:
         dump_cache(files)
