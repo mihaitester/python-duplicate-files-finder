@@ -214,3 +214,11 @@ MainThread__2022-09-14_23-40-37.173 Dumping duplicates file [2022-09-14_23-40-37
 MainThread__2022-09-14_23-40-39.719 === func:[dump_duplicates] took: [0days 00:00:02.545]
 MainThread__2022-09-14_23-40-39.719 Executed script in [0days 00:06:50.400]
 ```
+
+## TODO:
+1. need to identify HDDs somehow, so that when switching drive letters the cache files can still be valid 
+    - this can be done by saving the cached index files on disk
+
+2. need to add a config file which can replace the GLOBAL variables, allowing for better control of script 
+    - for example: this is useful for configuring extensions of index files, so that there is no collision with other files used by other tools 
+    - take `.cache` files which could conflict with filenames used by some other tools
