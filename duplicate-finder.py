@@ -928,7 +928,8 @@ def main():
     if args.cache:
         dump_cache(files)
 
-    zero_sized_files = [ x for x in files if x["size"] == 0 ] # todo: need to deal somehow with these files that pollute disks
+    zero_sized_files = [ x for x in files if x["size"] < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH ] # todo: need to deal somehow with these files that pollute disks
+    LOGGER.info("Found [{}] files that are smaller in size than [{}]".format(len(zero_sized_files), MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH))
 
     # note: duplicates will destructively interfere with `FILES`
     duplicates = find_duplicates(files, args.parallelize)  # todo: figure out how to do in place changes, instead of storing all files metadata for processing
