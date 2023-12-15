@@ -393,7 +393,9 @@ def dump_cache(items=[]):
     :param items:
     :return:
     """
-    # todo: need to change this to use the path of the disk drives which are getting parsed
+    # todo: need to change this to use the path of the disk drives which are getting parsed, problem is that cache is maintained across multiple disks for comparisons
+    #cache_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
+    #                            ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".cache")
     cache_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
                                 ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".cache")
     try:
@@ -427,7 +429,7 @@ def load_cache(cache_file=""):
     for i in range(len(items)-1, 0, -1):
         if not os.path.exists(items[i]["path"]):
                 items.pop(i)
-    LOGGER.debug("Stripped [{}] files from cache that are not on disk".format(loaded_files - len(items)))
+    LOGGER.debug("Stripped [{}] files from cache that are no longer found on disk".format(loaded_files - len(items)))
     items.sort(key=lambda x: x["size"])
     items.reverse()
     cached_paths = [x["path"] for x in items]
@@ -443,6 +445,7 @@ def dump_duplicates(items=[], parallelize=True):
     :param items: {original_file: [duplicate1, duplicate2, ...], ...}
     :return:
     """
+    # note: this is used for debug purposes, comparing which files were found as duplicate between serialized and threaded script runs
     duplicates_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
                                      ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json")
     if parallelize:
@@ -787,6 +790,9 @@ def collect_all_files(paths=[], hidden=False, metrics=[], cached_files=[], cache
 
         LOGGER.debug("Collecting and hashing files in path [{}] which contains [{}] files totaling [{}]".format(path, metric["files"], print_size(metric["size"])))
         meta = collect_files_in_path(path, hidden, METRIC, cached_files, cached_paths, parallelize)
+        
+        # todo: dump a cache file in the path - need to load also caches if they exist here
+
         LOGGER.debug("Collected and hashed files in [%s] and built up [%s] of metadata" % (print_time(time.time() - start_time), print_size(sys.getsizeof(meta))))
         all_files += meta
 
