@@ -302,15 +302,33 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
     global PRINT_FILES_PROCESSED_COUNT, PRINT_FILES_PROCESSED_SIZE, PRINT_FILES_CACHED_SKIPPED
 
     # note: chunking to THREAD_COUNT squared, allowing files to be processed faster
-    chunk = int( len(METRIC["items"]) / THREAD_COUNT / THREAD_COUNT ) + 1 # add 1 file overlap so that all files get processed
+    # todo: need to figure out how to optimally-break down chunks so that hashing is done faster - 1 percent of number of files should ensure this
+    blocks = 100
+    block_size = int(len(METRIC["items"]) / blocks) + 1
+    # mini_block_size = int( block / blocks ) + 1
+    chunk_size = int( block_size / THREAD_COUNT ) + 1 # add 1 file overlap so that all files get processed
 
-    for i in range(THREAD_COUNT):
-        lower_limit = chunk * index * i
-        upper_limit = chunk * (index + 1) * i
+    LOGGER.info("Thread [{}] calculated chunk [{}], block_size [{}]".format(index, chunk, block_size))
+
+    # 100697 total files
+    # each thread will have to get ranges of chunks
+    # split in 100 blocks
+    # each thread starts at a block and ends at the next thread start chunk
+    # this goes from 1 to 100, each of this 100 blocks gets split into 8 for each thread
+    for i in range(blocks):
+        # for j in range(0, blocks):
+        # bug: this lower limit is not properly calculated for all threads
+        lower_limit = i * block_size + index * chunk_size
+        upper_limit = lower_limit + chunk_size # this should not overlap with following thread
+        #upper_limit = (index + 1) * i * block_size
         if upper_limit > len(METRIC["items"]):
             upper_limit = len(METRIC["items"])
 
-        LOGGER.info("Thread [{}] started hashing chunk [{},{}] of [{}] files with [{}] cached files".format(index, chunk * index, upper_limit, len(METRIC["items"]), len(cached_files)))
+        if upper_limit < lower_limit:
+            # need to skip if such inconsistency occurs
+            continue
+
+        LOGGER.info("Thread [{}] started hashing chunk [{},{}] of [{}] files with [{}] cached files".format(index, lower_limit, upper_limit, upper_limit - lower_limit, len(cached_files)))
 
         items = []
 
@@ -392,10 +410,13 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                 index, lower_limit, upper_limit, len(METRIC["items"]), len(cached_files),
                 print_time(time.time() - start_time), print_size(sys.getsizeof(items))))
 
-    #for
+        #for j
+    #for i
 
     with THREAD_LOCK:
         THREAD_FINISHED[index] = True # signal thread finished, mainthread will collect its results and clear the thread
+
+    LOGGER.info("Thread [{}] calculated chunk [{}], block_size [{}]".format(index, chunk, block_size))
 
     return items
 
