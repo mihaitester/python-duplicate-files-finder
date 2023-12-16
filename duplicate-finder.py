@@ -442,7 +442,7 @@ def dump_cache(items=[], path=""):
     cache_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
                                 ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".cache")
 
-    prev_items = {}
+    prev_items = []
     last_cache = ""
     try:
         _path = path + "\\*.cache"
@@ -472,7 +472,7 @@ def dump_cache(items=[], path=""):
 
             LOGGER.info("Dumping cache [{}]".format(file))
             with open(file, "w", encoding=ENCODING) as dumpfile:
-                dumpfile.write(json.dumps(items, indent=4))
+                dumpfile.write(json.dumps(items + prev_items, indent=4))
             LOGGER.debug("Dumped cache [{}]".format(file))
 
         except Exception as ex:
