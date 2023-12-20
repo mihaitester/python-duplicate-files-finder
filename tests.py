@@ -10,6 +10,7 @@ import copy
 BASE_FOLDER = os.path.abspath(os.path.dirname(__file__))
 TEST_FOLDER = os.path.join(BASE_FOLDER, "scrap_test_folder")
 SCRIPT = "duplicate-finder.cmd"
+SCRIPT_PARALELIZED = "duplicate-finder.cmd -p"
 ENCODING = "UTF-8"
 
 # THREAD_LOCK = threading.Lock() # note: this is not needed because there is a single reading thread, and the tests are sequential and processes launched are being waited for
@@ -50,7 +51,7 @@ def run_command_and_get_output(command):
     stdout = ""
     rc = 0
 
-    # note: this fixes handles but it does not return the full output from process
+    # note: this fixes handles but it does not return the full output from process # todo: figure out why this fails [ ResourceWarning: Enable tracemalloc to get the object allocation traceback ]
     with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         # note: this pollutes stdout with both stdout and stderr    
         # while True:
@@ -93,31 +94,93 @@ def run_command_and_get_output(command):
     return stdout, stderr, rc
 
 
-class TestDuplicateFinder(unittest.TestCase):
+class TestDuplicateFinder_Serialized(unittest.TestCase):
 
     def setUp(self):
-        print("Creating test folder: [{}]".format(TEST_FOLDER))
+        # print("Creating test folder: [{}]".format(TEST_FOLDER))
         os.mkdir(TEST_FOLDER)
 
     def tearDown(self):
-        print("Deleting folder recursively: [{}]".format(TEST_FOLDER))
+        # print("Deleting folder recursively: [{}]".format(TEST_FOLDER))
         shutil.rmtree(TEST_FOLDER)
 
-    def test_single_file(self):
+    def test_no_file(self):
         # os.system(SCRIPT + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
-        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER) # todo: figure out why this fails [ ResourceWarning: Enable tracemalloc to get the object allocation traceback ]
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         # print(stdout)
-        print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
+        self.assertTrue("Found [0] duplicated files" in stderr)
+        # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
-        pass
+    
+    def test_single_file(self):
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write("Something not useful")
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        self.assertTrue("Found [0] duplicated files" in stderr)
 
-    # def test_two_files_non_duplicate(self):
-        # pass
+    def test_two_files_non_duplicate(self):
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write("Something not useful")
+        with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
+            writefile.write("Something not useful but different")
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        self.assertTrue("Found [0] duplicated files" in stderr)
 
-    # def test_two_files_duplicated(self):
-        # pass
+    def test_two_files_duplicated(self):
+        content = "Something not useful"
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write(content)
+        with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
+            writefile.write(content)
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found [1] duplicated files" in stderr)
+
+
+class TestDuplicateFinder_Paralelized(unittest.TestCase):
+
+    def setUp(self):
+        # print("Creating test folder: [{}]".format(TEST_FOLDER))
+        os.mkdir(TEST_FOLDER)
+
+    def tearDown(self):
+        # print("Deleting folder recursively: [{}]".format(TEST_FOLDER))
+        shutil.rmtree(TEST_FOLDER)
+
+    def test_no_file(self):
+        # os.system(SCRIPT_PARALELIZED + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        # print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stderr)
+        # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
+        # print(rc)
+    
+    def test_single_file(self):
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write("Something not useful")
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        self.assertTrue("Found [0] duplicated files" in stderr)
+
+    def test_two_files_non_duplicate(self):
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write("Something not useful")
+        with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
+            writefile.write("Something not useful but different")
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        self.assertTrue("Found [0] duplicated files" in stderr)
+
+    def test_two_files_duplicated(self):
+        content = "Something not useful"
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write(content)
+        with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
+            writefile.write(content)
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found [1] duplicated files" in stderr)
 
 if __name__ == "__main__":
     #print(FOLDER)
     #print(os.path.join(FOLDER, SUB_FOLDER))
     unittest.main()
+    # todo: maybe add a logger for tests as well
