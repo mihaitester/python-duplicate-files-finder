@@ -309,7 +309,8 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
     # mini_block_size = int( block / blocks ) + 1
     chunk_size = int( block_size / THREAD_COUNT ) + 1 # add 1 file overlap so that all files get processed
 
-    LOGGER.info("Thread [{}] calculated chunk [{}], block_size [{}]".format(index, chunk_size, block_size))
+    LOGGER.info("Thread [{}] started".format(index))
+    LOGGER.debug("Thread [{}] calculated chunk_size [{}], block_size [{}], total files [{}], cached files [{}]".format(index, chunk_size, block_size, len(METRIC["items"]), len(cached_files)))
 
     # 100697 total files
     # each thread will have to get ranges of chunks
@@ -340,7 +341,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
         #         if upper_limit < len(METRIC["items"]):
         #             upper_limit = len(METRIC["items"])
 
-        LOGGER.debug("Thread [{}] started hashing chunk [{},{}] of [{}] files with [{}] cached files".format(index, lower_limit, upper_limit, upper_limit - lower_limit, len(cached_files)))
+        LOGGER.debug("Thread [{}] started hashing chunk [{},{}]".format(index, lower_limit, upper_limit))
 
         items = []
 
@@ -428,7 +429,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
     with THREAD_LOCK:
         THREAD_FINISHED[index] = True # signal thread finished, mainthread will collect its results and clear the thread
 
-    LOGGER.info("Thread [{}] calculated chunk [{}], block_size [{}]".format(index, chunk_size, block_size))
+    LOGGER.info("Thread [{}] finished".format(index))
 
     return items
 
@@ -1038,7 +1039,9 @@ def main():
     consolehandler.setFormatter(LOG_FORMATTER)
     consolehandler.setLevel(args.debug) # configure verbosity to screen
 
-    filehandler = logging.FileHandler(filename=__file__ + ".log", encoding=LOG_ENCODING) # note: encoding is important because of difference UTF-8 and filenames, and avoids having to update each print with encoding
+    filehandler = logging.FileHandler(filename="{}_{}".format(
+            datetime.datetime.now().strftime(DATETIME_FORMAT),
+            ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".log"), encoding=LOG_ENCODING) # note: encoding is important because of difference UTF-8 and filenames, and avoids having to update each print with encoding
     filehandler.setFormatter(LOG_FORMATTER)
     filehandler.setLevel(logging.DEBUG) # use DEBUG to get all logs to file
 
