@@ -11,6 +11,7 @@ TEST_FOLDER = os.path.join(BASE_FOLDER, "scrap_test_folder")
 SCRIPT = "duplicate-finder.cmd"
 ENCODING = "UTF-8"
 
+THREAD_LOCK = threading.Lock()
 THREAD_STDOUT = b""
 THREAD_STDERR = b""
 THREAD_SLEEP = 2
@@ -22,21 +23,32 @@ def thread_reader(stdout_pipe, stderr_pipe, finished):
     THREAD_STDERR = b""
     
     while not finished.is_set():
-        stdout = stdout_pipe.read()
-        stderr = stderr_pipe.read()
-        if stdout: 
-            THREAD_STDOUT += stdout
-        if stderr:
-            THREAD_STDERR += stderr
         time.sleep(THREAD_SLEEP)
+        try:
+            stdout = stdout_pipe.read()
+            stderr = stderr_pipe.read()
+            if stdout:
+                THREAD_LOCK.acquire()
+                THREAD_STDOUT = THREAD_STDOUT + stdout
+                THREAD_LOCK.release()
+                # print(stdout)
+                # print(THREAD_STDOUT)
+            if stderr:
+                THREAD_LOCK.acquire()
+                THREAD_STDERR = THREAD_STDERR + stderr
+                THREAD_LOCK.release()
+                # print(stderr)
+                # print(THREAD_STDERR)
+        except Exception as ex:
+            print("Process reading thread failed with [{}]".format(ex.message))
+
 
 def run_command_and_get_output(command):
-    # note: this does not properly output the results from sub processes opened
+    # note: this does not properly output the results from sub processes opened, makes me think that python is hacked and that processes are virtualized instead of actually running in their own shell
     stderr = b""
     stdout = b""
-    rc = 0
 
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
     # note: this pollutes stdout with both stdout and stderr    
     # while True:
@@ -44,13 +56,15 @@ def run_command_and_get_output(command):
     #         break
     #     stdout += proc.stdout.read()
     #     stderr += proc.stderr.read()
-   
-    reader_finished = threading.Event()
-    reader_thread = threading.Thread(target=thread_reader, args=(proc.stdout, proc.stderr, reader_finished))
-    reader_thread.start()
-    proc.wait()
-    reader_finished.set()
-    reader_thread.join()
+    try:
+        reader_finished = threading.Event()
+        reader_thread = threading.Thread(target=thread_reader, args=(proc.stdout, proc.stderr, reader_finished))
+        reader_thread.start()
+        proc.wait()
+        reader_finished.set()
+        reader_thread.join()
+    except Exception as ex:
+        print("Failed to start process reading thread with [{}]".format(ex.message))
 
     stdout = THREAD_STDOUT
     stderr = THREAD_STDERR
@@ -66,9 +80,7 @@ def run_command_and_get_output(command):
     #     proc.kill()
     #     stdout, stderr = proc.communicate()
 
-    rc = proc.returncode
-
-    return stdout.decode(ENCODING), stderr.decode(ENCODING), rc
+    return stdout.decode(ENCODING), stderr.decode(ENCODING), proc.returncode
 
 class TestDuplicateFinder(unittest.TestCase):
 
