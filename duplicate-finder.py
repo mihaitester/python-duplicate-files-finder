@@ -26,8 +26,8 @@ FILE_NAME_ENCODING = "ISO-8859-1"  # help: [ https://www.codegrepper.com/code-ex
 # help: [ https://docs.python.org/3/library/time.html#time.strftime ]
 # help: [ https://stackoverflow.com/questions/6290739/python-logging-use-milliseconds-in-time-format ]
 LOG_FORMATTER = logging.Formatter(fmt='%(threadName)s__%(asctime)s.%(msecs)03d %(message)s', datefmt=DATETIME_FORMAT)
-LOGGER = logging.Logger(__file__)
 LOG_ENCODING = "UTF-8"
+LOGGER = logging.Logger(__file__)
 # LOGGER = logging.basicConfig(encoding="UTF-8", level=logging.DEBUG, format=LOG_FORMATTER)
 
 # todo: add a way to configure what base units to use, like days, or weeks, TB or PB, which are used in logging
@@ -54,8 +54,6 @@ def timeit(f):
 # help: [ https://superfastpython.com/thread-share-variables/ ] - how to share data with the printing thread
 # help: [ https://docs.python.org/3/library/threading.html ] - basics of python threading
 # help: [ https://stackoverflow.com/questions/3221655/python-threading-string-arguments ] - pass arguments to thread
-
-
 
 
 # todo: collect size of the metadata generated from each thread and properly display all the metadata generated
@@ -1080,6 +1078,7 @@ def main():
     #  need to pre-index files and folders to figure out size of files and distribution in subfolders, then start the indexing of metadata
     LOGGER.info("Executed script in [{}]".format(print_time(time.time() - start_time)))
 
+    # LOGGER.shutdown() # used to close handles to logging files
     pass  # used for debug breakpoint
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import unittest
 import subprocess
 import threading
 import time
-# import copy
+import copy
 
 BASE_FOLDER = os.path.abspath(os.path.dirname(__file__))
 TEST_FOLDER = os.path.join(BASE_FOLDER, "scrap_test_folder")
@@ -106,14 +106,16 @@ class TestDuplicateFinder(unittest.TestCase):
     def test_single_file(self):
         # os.system(SCRIPT + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER) # todo: figure out why this fails [ ResourceWarning: Enable tracemalloc to get the object allocation traceback ]
-        print(stdout)
+        # print(stdout)
+        print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
+        # print(rc)
         pass
 
-    def test_two_files_non_duplicate(self):
-        pass
+    # def test_two_files_non_duplicate(self):
+        # pass
 
-    def test_two_files_duplicated(self):
-        pass
+    # def test_two_files_duplicated(self):
+        # pass
 
 if __name__ == "__main__":
     #print(FOLDER)
