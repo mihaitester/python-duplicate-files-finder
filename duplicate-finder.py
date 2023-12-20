@@ -73,7 +73,7 @@ def print_collecting_ETA(parallelize, start_time, timeout):
                 METRIC["files"],
                 print_time(time.time() - start_time),
                 print_time(PRINT_ETA),
-                PRINT_FILES_PROCESSED_SIZE / METRIC["size"] * 100,
+                PRINT_FILES_PROCESSED_SIZE / METRIC["size"] * 100 if METRIC["size"] > 0 else 0,
                 print_size(sys.getsizeof(FILES)),
                 ACTIVE_THREADS
             ))
