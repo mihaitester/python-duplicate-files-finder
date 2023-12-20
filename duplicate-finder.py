@@ -20,14 +20,15 @@ import multiprocessing
 
 MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH = 256
 DATETIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
-ENCODING = "ISO-8859-1"  # help: [ https://www.codegrepper.com/code-examples/python/UnicodeDecodeError%3A+%27utf-16-le%27+codec+can%27t+decode+bytes+in+position+60-61%3A+illegal+UTF-16+surrogate ]
+FILE_NAME_ENCODING = "ISO-8859-1"  # help: [ https://www.codegrepper.com/code-examples/python/UnicodeDecodeError%3A+%27utf-16-le%27+codec+can%27t+decode+bytes+in+position+60-61%3A+illegal+UTF-16+surrogate ]
 
 # help: [ https://docs.python.org/3/howto/logging.html#logging-advanced-tutorial ]
 # help: [ https://docs.python.org/3/library/time.html#time.strftime ]
 # help: [ https://stackoverflow.com/questions/6290739/python-logging-use-milliseconds-in-time-format ]
 LOG_FORMATTER = logging.Formatter(fmt='%(threadName)s__%(asctime)s.%(msecs)03d %(message)s', datefmt=DATETIME_FORMAT)
 LOGGER = logging.Logger(__file__)
-
+LOG_ENCODING = "UTF-8"
+# LOGGER = logging.basicConfig(encoding="UTF-8", level=logging.DEBUG, format=LOG_FORMATTER)
 
 # todo: add a way to configure what base units to use, like days, or weeks, TB or PB, which are used in logging
 
@@ -319,14 +320,18 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
         # for j in range(0, blocks):
         # bug: this lower limit is not properly calculated for all threads
         lower_limit = i * block_size + index * chunk_size
-        upper_limit = lower_limit + chunk_size # this should not overlap with following thread
+        upper_limit = lower_limit + chunk_size# this should not overlap with following thread
         #upper_limit = (index + 1) * i * block_size
         if upper_limit > len(METRIC["items"]):
             upper_limit = len(METRIC["items"])
 
-        if upper_limit < lower_limit:
+        if upper_limit >= (i+1) * block_size:
+            upper_limit = (i+1) * block_size - 1
+
+        # this should never happen
+        #if upper_limit < lower_limit:
             # need to skip if such inconsistency occurs
-            continue
+        #    continue
 
         # if index == THREAD_COUNT - 1:
         #     # note: the last thread has to pick up all remaining files
@@ -356,14 +361,14 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                     if file not in cached_paths:  # todo: figure out if this optimizes or delays script, hoping else branch triggers if cached not provided
                         LOGGER.debug("Found unhashed file [{}]".format(file))
                         size = os.path.getsize(file)
-                        checksum = hashlib.md5().digest().decode(ENCODING)
+                        checksum = hashlib.md5().digest().decode(FILE_NAME_ENCODING)
                         try:
                             # todo: figure out elevation for files that are in system folders does not work even if console is admin
                             # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
                             if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
-                                checksum = hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) 
+                                checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
                             else:
-                                checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
+                                checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
                         except:
                             LOGGER.debug("Failed to process checksum for file [{}]".format(file))
                         item = {
@@ -393,14 +398,14 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                     # todo: one idea to optimize the total run time is to compute the hashes only for files that have same size, but computing hashes of files could be useful for identifying changed files in the future, thus ensuring different versions of same file are also backed up
                     LOGGER.debug("Hashing file [{}]".format(file))
                     size = os.path.getsize(file)
-                    checksum = hashlib.md5().digest().decode(ENCODING)
+                    checksum = hashlib.md5().digest().decode(FILE_NAME_ENCODING)
                     try:
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
                         if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
-                            checksum = hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) 
+                            checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
                         else:
-                            checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
+                            checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
                     except:
                         LOGGER.debug("Failed to process checksum for file [{}]".format(file))
                     item = {
@@ -412,7 +417,7 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                     PRINT_FILES_PROCESSED_SIZE += item['size']
                     items.append(item)
 
-        LOGGER.info(
+        LOGGER.debug(
             "Thread [{}] finished hashing chunk [{},{}] of [{}] files with [{}] cached files in [{}] generating [{}] metadata".format(
                 index, lower_limit, upper_limit, len(METRIC["items"]), len(cached_files),
                 print_time(time.time() - start_time), print_size(sys.getsizeof(items))))
@@ -448,7 +453,7 @@ def dump_cache(items=[], path=""):
         _path = path + "\\*.cache"
         LOGGER.info("Loading previous cache file if it exists [{}]".format(_path))
         last_cache = sorted(glob.glob(_path), reverse=True)[0]
-        with open(last_cache, "r", encoding=ENCODING) as readfile:
+        with open(last_cache, "r", encoding=FILE_NAME_ENCODING) as readfile:
             prev_items = json.loads(readfile.read())
         LOGGER.info("Loaded previous cache [{}] containing [{}] items".format(last_cache, len(prev_items)))
     except:
@@ -471,7 +476,7 @@ def dump_cache(items=[], path=""):
             file = os.path.join(path, cache_file)
 
             LOGGER.info("Dumping cache [{}]".format(file))
-            with open(file, "w", encoding=ENCODING) as dumpfile:
+            with open(file, "w", encoding=FILE_NAME_ENCODING) as dumpfile:
                 dumpfile.write(json.dumps(items + prev_items, indent=4))
             LOGGER.debug("Dumped cache [{}]".format(file))
 
@@ -494,7 +499,7 @@ def load_cache(cache_file="", path=""):
         try:
             LOGGER.info("Loading cache [{}]".format(cache_file))
             # todo: change this to the path of the disk drives which are getting parsed
-            with open(os.path.join(path, cache_file), "r", encoding=ENCODING) as readfile:
+            with open(os.path.join(path, cache_file), "r", encoding=FILE_NAME_ENCODING) as readfile:
                 items = json.loads(readfile.read())
             LOGGER.info("Loaded cache [{}]".format(cache_file))
         except Exception as ex:
@@ -507,7 +512,7 @@ def load_cache(cache_file="", path=""):
             _path = path + "\\*.cache"
             LOGGER.info("Searching for cache files in path [{}]".format(_path))
             last_cache = sorted(glob.glob(_path), reverse=True)[0]
-            with open(last_cache, "r", encoding=ENCODING) as readfile:
+            with open(last_cache, "r", encoding=FILE_NAME_ENCODING) as readfile:
                 items = json.loads(readfile.read())
             LOGGER.info("Loaded cache [{}]".format(last_cache))
         except Exception as ex:
@@ -543,7 +548,7 @@ def dump_duplicates(items=[], parallelize=True):
                                          ('.').join(os.path.basename(__file__).split('.')[:-1]) + "_p.json")
     try:
         LOGGER.info("Dumping duplicates file [{}]".format(duplicates_file))
-        with open(duplicates_file, "w", encoding=ENCODING) as dumpfile:
+        with open(duplicates_file, "w", encoding=FILE_NAME_ENCODING) as dumpfile:
             dumpfile.write(json.dumps(items, indent=4))
         LOGGER.debug("Dumped duplicates file [{}]".format(duplicates_file))
     except Exception as ex:
@@ -807,14 +812,14 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                         LOGGER.debug("Found unhashed file [{}]".format(file))
                         # found that files containing 0 Kbytes are getting identified as duplicates despite them not being so, in case of similar size need to change checksum to be used on filename
                         size = os.path.getsize(file)
-                        checksum = hashlib.md5().digest().decode(ENCODING)
+                        checksum = hashlib.md5().digest().decode(FILE_NAME_ENCODING)
                         try:
                             # todo: figure out elevation for files that are in system folders does not work even if console is admin
                             # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
                             if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
-                                checksum = hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) 
+                                checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
                             else:
-                                checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
+                                checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
                         except:
                             LOGGER.debug("Failed to process checksum for file [{}]".format(file))
                         item = {
@@ -833,14 +838,14 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                     LOGGER.debug("Hashing file [{}]".format(file))
                     # found that files containing 0 Kbytes are getting identified as duplicates despite them not being so, in case of similar size need to change checksum to be used on filename
                     size = os.path.getsize(file)
-                    checksum = hashlib.md5().digest().decode(ENCODING)
+                    checksum = hashlib.md5().digest().decode(FILE_NAME_ENCODING)
                     try:
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
                         if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
-                            checksum = hashlib.md5(file.encode(ENCODING)).digest().decode(ENCODING) 
+                            checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
                         else:
-                            checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(ENCODING)
+                            checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
                     except:
                         LOGGER.debug("Failed to process checksum for file [{}]".format(file))
                     item = {
@@ -1029,11 +1034,17 @@ def main():
 
     # note: add a handler for the LOGGER, thus changing the format of the logs
     global LOGGER
-    handler = logging.StreamHandler()
-    handler.setFormatter(LOG_FORMATTER)
-    handler.setLevel(args.debug)
-    LOGGER.addHandler(handler)
-    LOGGER.setLevel(args.debug)
+    consolehandler = logging.StreamHandler()
+    consolehandler.setFormatter(LOG_FORMATTER)
+    consolehandler.setLevel(args.debug) # configure verbosity to screen
+
+    filehandler = logging.FileHandler(filename=__file__ + ".log", encoding=LOG_ENCODING) # note: encoding is important because of difference UTF-8 and filenames, and avoids having to update each print with encoding
+    filehandler.setFormatter(LOG_FORMATTER)
+    filehandler.setLevel(logging.DEBUG) # use DEBUG to get all logs to file
+
+    LOGGER.addHandler(consolehandler)
+    LOGGER.addHandler(filehandler)
+    #LOGGER.setLevel(args.debug)
 
     cached_files = []
     cached_paths = []
