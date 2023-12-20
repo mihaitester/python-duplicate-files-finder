@@ -16,14 +16,17 @@ THREAD_STDERR = b""
 THREAD_SLEEP = 2
 
 def thread_reader(stdout_pipe, stderr_pipe, finished):
+    
+    global THREAD_STDOUT, THREAD_STDERR
+    THREAD_STDOUT = b""
+    THREAD_STDERR = b""
+    
     while not finished.is_set():
         stdout = stdout_pipe.read()
         stderr = stderr_pipe.read()
         if stdout: 
-            global THREAD_STDOUT
             THREAD_STDOUT += stdout
         if stderr:
-            global THREAD_STDERR
             THREAD_STDERR += stderr
         time.sleep(THREAD_SLEEP)
 
@@ -41,7 +44,7 @@ def run_command_and_get_output(command):
     #         break
     #     stdout += proc.stdout.read()
     #     stderr += proc.stderr.read()
-
+   
     reader_finished = threading.Event()
     reader_thread = threading.Thread(target=thread_reader, args=(proc.stdout, proc.stderr, reader_finished))
     reader_thread.start()
