@@ -51,6 +51,8 @@ def run_command_and_get_output(command):
     stdout = ""
     rc = 0
 
+    print("{}".format(command))
+
     # note: this fixes handles but it does not return the full output from process # todo: figure out why this fails [ ResourceWarning: Enable tracemalloc to get the object allocation traceback ]
     with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         # note: this pollutes stdout with both stdout and stderr    
