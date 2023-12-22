@@ -300,6 +300,10 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
     global THREAD_FINISHED, THREAD_S, THREAD_COUNT, THREAD_LOCK
     global PRINT_FILES_PROCESSED_COUNT, PRINT_FILES_PROCESSED_SIZE, PRINT_FILES_CACHED_SKIPPED
 
+    # note: without this, this thread enters an endless loop
+    if len(METRIC["items"]) < 2:
+        return []
+
     # note: chunking to THREAD_COUNT squared, allowing files to be processed faster
     # todo: need to figure out how to optimally-break down chunks so that hashing is done faster - 1 percent of number of files should ensure this
     blocks = 100
@@ -626,6 +630,10 @@ def find_duplicates(items=[], parallelize=True):
             THREAD_FILES_PROCESSED = [False] * len(FILES)
             THREAD_FILES_DUPLICATES = [0] * THREAD_COUNT
 
+        # note: without this, this thread enters an endless loop
+        if len(items) < 2:
+            return []
+
         changing_indexes = [0] # automatically add first item
         for i in range(1, len(items)):
             if items[i-1]["size"] != items[i]["size"]:
@@ -758,6 +766,10 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
         with THREAD_LOCK:
             THREAD_FINISHED = [False] * THREAD_COUNT
             THREAD_S = [None] * THREAD_COUNT
+
+        # note: without this, this thread enters an endless loop
+        if len(METRIC["items"]) < 2:
+            return []
 
         for i in range(THREAD_COUNT):
             p = ThreadWithResult(target=thread_process_hashes, args=[i, cached_files, cached_paths])  # pass the timeout on start of thread
