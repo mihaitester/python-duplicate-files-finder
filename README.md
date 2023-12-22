@@ -215,6 +215,54 @@ MainThread__2022-09-14_23-40-39.719 === func:[dump_duplicates] took: [0days 00:0
 MainThread__2022-09-14_23-40-39.719 Executed script in [0days 00:06:50.400]
 ```
 
+# Tests
+```
+======================================================================
+FAIL: test_no_file (__main__.TestDuplicateFinder_Paralelized.test_no_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\notarealuser\Downloads\python-duplicate-files-finder\tests.py", line 165, in test_no_file
+    self.assertTrue("Found [0] duplicated files" in stderr)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_single_file (__main__.TestDuplicateFinder_Paralelized.test_single_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\notarealuser\Downloads\python-duplicate-files-finder\tests.py", line 173, in test_single_file
+    self.assertTrue("Found [0] duplicated files" in stderr)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_two_files_duplicated (__main__.TestDuplicateFinder_Paralelized.test_two_files_duplicated)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\notarealuser\Downloads\python-duplicate-files-finder\tests.py", line 191, in test_two_files_duplicated
+    self.assertTrue("Found [1] duplicated files" in stderr)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_two_files_non_duplicate (__main__.TestDuplicateFinder_Paralelized.test_two_files_non_duplicate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\notarealuser\Downloads\python-duplicate-files-finder\tests.py", line 181, in test_two_files_non_duplicate
+    self.assertTrue("Found [0] duplicated files" in stderr)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_two_files_duplicated (__main__.TestDuplicateFinder_SingleThread.test_two_files_duplicated)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\notarealuser\Downloads\python-duplicate-files-finder\tests.py", line 147, in test_two_files_duplicated
+    self.assertTrue("Found [1] duplicated files" in stderr)
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 8 tests in 45.091s
+
+FAILED (failures=5)
+```
+
 ## TODO:
 1. need to identify HDDs somehow, so that when switching drive letters the cache files can still be valid 
     - this can be done by saving the cached index files on disk
