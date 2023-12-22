@@ -104,7 +104,7 @@ def run_command_and_get_output(command):
     return stdout, stderr, rc
 
 
-class TestDuplicateFinder(unittest.TestCase):
+class TestDuplicateFinder_SingleThread(unittest.TestCase):
 
     def setUp(self):
         # print("Creating test folder: [{}]".format(TEST_FOLDER))
