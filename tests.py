@@ -6,6 +6,7 @@ import subprocess
 import threading
 import time
 import copy
+import sys
 
 BASE_FOLDER = os.path.abspath(os.path.dirname(__file__))
 TEST_FOLDER = os.path.join(BASE_FOLDER, "scrap_test_folder")
@@ -55,7 +56,7 @@ def run_command_and_get_output(command):
     stdout = ""
     rc = 0
 
-    print("{}".format(command))
+    # print("{}".format(command))
 
     # note: this fixes handles but it does not return the full output from process # todo: figure out why this fails [ ResourceWarning: Enable tracemalloc to get the object allocation traceback ]
     with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
@@ -103,47 +104,47 @@ def run_command_and_get_output(command):
     return stdout, stderr, rc
 
 
-# class TestDuplicateFinder(unittest.TestCase):
+class TestDuplicateFinder(unittest.TestCase):
 
-#     def setUp(self):
-#         # print("Creating test folder: [{}]".format(TEST_FOLDER))
-#         os.mkdir(TEST_FOLDER)
+    def setUp(self):
+        # print("Creating test folder: [{}]".format(TEST_FOLDER))
+        os.mkdir(TEST_FOLDER)
 
-#     def tearDown(self):
-#         # print("Deleting folder recursively: [{}]".format(TEST_FOLDER))
-#         shutil.rmtree(TEST_FOLDER)
+    def tearDown(self):
+        # print("Deleting folder recursively: [{}]".format(TEST_FOLDER))
+        shutil.rmtree(TEST_FOLDER)
 
-#     def test_no_file(self):
-#         # os.system(SCRIPT + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
-#         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-#         # print(stdout)
-#         self.assertTrue("Found [0] duplicated files" in stderr)
-#         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
-#         # print(rc)
+    def test_no_file(self):
+        # os.system(SCRIPT + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        # print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stderr)
+        # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
+        # print(rc)
     
-#     def test_single_file(self):
-#         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
-#             writefile.write("Something not useful")
-#         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-#         self.assertTrue("Found [0] duplicated files" in stderr)
+    def test_single_file(self):
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write("Something not useful")
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        self.assertTrue("Found [0] duplicated files" in stderr)
 
-#     def test_two_files_non_duplicate(self):
-#         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
-#             writefile.write("Something not useful")
-#         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
-#             writefile.write("Something not useful but different")
-#         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-#         self.assertTrue("Found [0] duplicated files" in stderr)
+    def test_two_files_non_duplicate(self):
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write("Something not useful")
+        with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
+            writefile.write("Something not useful but different")
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        self.assertTrue("Found [0] duplicated files" in stderr)
 
-#     def test_two_files_duplicated(self):
-#         content = "Something not useful"
-#         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
-#             writefile.write(content)
-#         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
-#             writefile.write(content)
-#         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-#         print(stderr)
-#         self.assertTrue("Found [1] duplicated files" in stderr)
+    def test_two_files_duplicated(self):
+        content = "Something not useful"
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write(content)
+        with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
+            writefile.write(content)
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found [1] duplicated files" in stderr)
 
 
 class TestDuplicateFinder_Paralelized(unittest.TestCase):
@@ -165,32 +166,42 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
     
-    # def test_single_file(self):
-    #     with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
-    #         writefile.write("Something not useful")
-    #     stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-    #     self.assertTrue("Found [0] duplicated files" in stderr)
+    def test_single_file(self):
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write("Something not useful")
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        self.assertTrue("Found [0] duplicated files" in stderr)
 
-    # def test_two_files_non_duplicate(self):
-    #     with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
-    #         writefile.write("Something not useful")
-    #     with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
-    #         writefile.write("Something not useful but different")
-    #     stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-    #     self.assertTrue("Found [0] duplicated files" in stderr)
+    def test_two_files_non_duplicate(self):
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write("Something not useful")
+        with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
+            writefile.write("Something not useful but different")
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        self.assertTrue("Found [0] duplicated files" in stderr)
 
-    # def test_two_files_duplicated(self):
-    #     content = "Something not useful"
-    #     with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
-    #         writefile.write(content)
-    #     with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
-    #         writefile.write(content)
-    #     stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-    #     print(stderr)
-    #     self.assertTrue("Found [1] duplicated files" in stderr)
+    def test_two_files_duplicated(self):
+        content = "Something not useful"
+        with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
+            writefile.write(content)
+        with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
+            writefile.write(content)
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found [1] duplicated files" in stderr)
+
+def main(verbosity=1):
+    # note: really weird that verbosity cannot be passed through, but unittest will automatically process --verbose parameter from sys.argv
+    unittest.main()
 
 if __name__ == "__main__":
     #print(FOLDER)
     #print(os.path.join(FOLDER, SUB_FOLDER))
-    unittest.main()
+    # if len(sys.argv) > 1:
+    #     print(sys.argv)
+    #     # note: need to provide verbosity level [0,1,2 -> 2 is most verbose] -> help: [ https://stackoverflow.com/questions/1322575/what-numbers-can-you-pass-as-verbosity-in-running-python-unit-test-suites ]
+    #     main(int(sys.argv[1])) 
+    # else:
+    #     main()
+    main()
     # todo: maybe add a logger for tests as well
