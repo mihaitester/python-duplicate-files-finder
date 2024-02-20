@@ -127,7 +127,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [0] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed")
         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
     
@@ -138,7 +139,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [0] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed")
 
     def test_2_files_non_duplicate(self):
         print(self.prefix + self.id())
@@ -149,7 +151,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [0] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed")
 
     def test_2_files_duplicated(self):
         print(self.prefix + self.id())
@@ -161,7 +164,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [1] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [1] duplicated files" in stderr, "Test failed")
 
     def test_100_files_non_duplicate(self):
         print(self.prefix + self.id())
@@ -172,7 +176,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [0] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed")
 
     def test_100_files_all_duplicate(self):
         print(self.prefix + self.id())
@@ -184,7 +189,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr, "Test failed")
 
     def test_100_files_random_duplicate(self):
         print(self.prefix + self.id())
@@ -201,7 +207,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stderr, "Test failed")
 
 
 class TestDuplicateFinder_Paralelized(unittest.TestCase):
@@ -223,7 +230,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [0] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed")
         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
 
@@ -234,7 +242,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [0] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [0] duplicated files" in stderr)
 
     def test_2_files_non_duplicate(self):
         print(self.prefix + self.id())
@@ -245,7 +254,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [0] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [0] duplicated files" in stderr,  "Test failed")
 
     def test_2_files_duplicated(self):
         print(self.prefix + self.id())
@@ -257,7 +267,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [1] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [1] duplicated files" in stderr, "Test failed")
 
     def test_100_files_non_duplicate(self):
         print(self.prefix + self.id())
@@ -268,7 +279,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [0] duplicated files" in stdout)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed")
 
     def test_100_files_all_duplicate(self):
         print(self.prefix + self.id())
@@ -280,7 +292,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr, "Test failed")
 
     def test_100_files_random_duplicate(self):
         print(self.prefix + self.id())
@@ -297,7 +310,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
         print(stdout)
-        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stderr)
+        self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
+        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stderr, "Test failed")
 
 
 def main(verbosity=1):
