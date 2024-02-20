@@ -8,6 +8,8 @@ import time
 import copy
 import sys
 
+import random
+
 BASE_FOLDER = os.path.abspath(os.path.dirname(__file__))
 TEST_FOLDER = os.path.join(BASE_FOLDER, "scrap_test_folder")
 SCRIPT = "duplicate-finder.cmd"
@@ -77,7 +79,7 @@ def run_command_and_get_output(command):
             try:
                 print("Failed to start process reading thread with [{}]".format(ex.message))
             except:
-                 print("Failed to start process reading thread with [{}]".format(str(ex)))
+                print("Failed to start process reading thread with [{}]".format(str(ex)))
         # proc.kill()
 
         # THREAD_LOCK.acquire()
@@ -114,7 +116,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         # print("Deleting folder recursively: [{}]".format(TEST_FOLDER))
         shutil.rmtree(TEST_FOLDER)
 
-    def test_no_file(self):
+    def test_no_file(self): 
+        print(self.id())
         # os.system(SCRIPT + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         # print(stdout)
@@ -123,12 +126,14 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         # print(rc)
     
     def test_single_file(self):
+        print(self.id())
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         self.assertTrue("Found [0] duplicated files" in stderr)
 
-    def test_two_files_non_duplicate(self):
+    def test_2_files_non_duplicate(self):
+        print(self.id())
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
@@ -136,7 +141,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         self.assertTrue("Found [0] duplicated files" in stderr)
 
-    def test_two_files_duplicated(self):
+    def test_2_files_duplicated(self):
+        print(self.id())
         content = "Something not useful"
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write(content)
@@ -145,6 +151,43 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
         self.assertTrue("Found [1] duplicated files" in stderr)
+
+    def test_100_files_non_duplicate(self):
+        print(self.id())
+        content = "Something not useful"
+        for i in range(0,100):
+            with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
+                writefile.write(content + str(i))
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found [0] duplicated files" in stderr)
+
+    def test_100_files_all_duplicate(self):
+        print(self.id())
+        content = "Something not useful"
+        duplicates = 100
+        for i in range(0,duplicates):
+            with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
+                writefile.write(content)
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr)
+
+    def test_100_files_random_duplicate(self):
+        print(self.id())
+        content = "Something not useful"
+        duplicates = random.randint(0, 100)
+        duplicated = 0
+        for i in range(0,100):
+            with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
+                if duplicated < duplicates:
+                    writefile.write(content)
+                    duplicated += 1
+                else:
+                    writefile.write(content + str(i))
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stderr)
 
 
 class TestDuplicateFinder_Paralelized(unittest.TestCase):
@@ -159,20 +202,23 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         shutil.rmtree(TEST_FOLDER)
 
     def test_no_file(self):
+        print(self.id())
         # os.system(SCRIPT_PARALELIZED + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         # print(stdout)
         self.assertTrue("Found [0] duplicated files" in stderr)
         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
-    
+
     def test_single_file(self):
+        print(self.id())
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         self.assertTrue("Found [0] duplicated files" in stderr)
 
-    def test_two_files_non_duplicate(self):
+    def test_2_files_non_duplicate(self):
+        print(self.id())
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
@@ -180,7 +226,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         self.assertTrue("Found [0] duplicated files" in stderr)
 
-    def test_two_files_duplicated(self):
+    def test_2_files_duplicated(self):
+        print(self.id())
         content = "Something not useful"
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write(content)
@@ -189,6 +236,44 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
         self.assertTrue("Found [1] duplicated files" in stderr)
+
+    def test_100_files_non_duplicate(self):
+        print(self.id())
+        content = "Something not useful"
+        for i in range(0,100):
+            with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
+                writefile.write(content + str(i))
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found [0] duplicated files" in stderr)
+
+    def test_100_files_all_duplicate(self):
+        print(self.id())
+        content = "Something not useful"
+        duplicates = 100
+        for i in range(0,duplicates):
+            with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
+                writefile.write(content)
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr)
+
+    def test_100_files_random_duplicate(self):
+        print(self.id())
+        content = "Something not useful"
+        duplicates = random.randint(0, 100)
+        duplicated = 0
+        for i in range(0,100):
+            with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
+                if duplicated < duplicates:
+                    writefile.write(content)
+                    duplicated += 1
+                else:
+                    writefile.write(content + str(i))
+        stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        print(stderr)
+        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stderr)
+
 
 def main(verbosity=1):
     # note: really weird that verbosity cannot be passed through, but unittest will automatically process --verbose parameter from sys.argv

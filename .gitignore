@@ -3,3 +3,4 @@
 *.cache
 *.log
 scrap_test_folder
+__pycache__

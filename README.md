@@ -276,3 +276,6 @@ FAILED (failures=5)
     - then as more and more threads finish they get to start from the back end
         - problem is then after 1 cycle of promoted threads, how to split the remaining chunks so that remaining threads still work
             - could apply some sort of fractal fragmenting - meaning split again each initial chunk into equal sized chunks
+
+4. found that if HDD is filled then the script cannot create the proper files required for indexing in the same location 
+    - need to provide parameter for optional logs and cache location
