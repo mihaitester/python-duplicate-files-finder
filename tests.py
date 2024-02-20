@@ -103,6 +103,9 @@ def run_command_and_get_output(command):
     # print(stdout)
     # print(stderr)
     # print(rc)
+
+    # critical: note: there is a bug in chaining the calls through cmd.exe, for some reason all messages printed with [logger.INFO] level get printed to [stderr] pipe, instead of the [stdout] pipe
+    # todo: figure out if its just my [cmd.exe] that is doing this or its [python.exe] that does not properly output - either way its a bug
     return stdout, stderr, rc
 
 
@@ -122,9 +125,9 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         print(self.prefix + self.id())
         # os.system(SCRIPT + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-        # print(stdout)
         print(stderr)
-        self.assertTrue("Found [0] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stdout)
         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
     
@@ -134,7 +137,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
             writefile.write("Something not useful")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found [0] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stdout)
 
     def test_2_files_non_duplicate(self):
         print(self.prefix + self.id())
@@ -144,7 +148,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
             writefile.write("Something not useful but different")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found [0] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stdout)
 
     def test_2_files_duplicated(self):
         print(self.prefix + self.id())
@@ -155,7 +160,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
             writefile.write(content)
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found [1] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [1] duplicated files" in stdout)
 
     def test_100_files_non_duplicate(self):
         print(self.prefix + self.id())
@@ -165,7 +171,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
                 writefile.write(content + str(i))
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found [0] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stdout)
 
     def test_100_files_all_duplicate(self):
         print(self.prefix + self.id())
@@ -176,7 +183,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
                 writefile.write(content)
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stdout)
 
     def test_100_files_random_duplicate(self):
         print(self.prefix + self.id())
@@ -192,7 +200,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
                     writefile.write(content + str(i))
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stdout)
 
 
 class TestDuplicateFinder_Paralelized(unittest.TestCase):
@@ -212,8 +221,9 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         print(self.prefix + self.id())
         # os.system(SCRIPT_PARALELIZED + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-        # print(stdout)
-        self.assertTrue("Found [0] duplicated files" in stderr)
+        print(stderr)
+        print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stdout)
         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
 
@@ -223,7 +233,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
             writefile.write("Something not useful")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found [0] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stdout)
 
     def test_2_files_non_duplicate(self):
         print(self.prefix + self.id())
@@ -233,7 +244,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
             writefile.write("Something not useful but different")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found [0] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stdout)
 
     def test_2_files_duplicated(self):
         print(self.prefix + self.id())
@@ -244,7 +256,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
             writefile.write(content)
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found [1] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [1] duplicated files" in stdout)
 
     def test_100_files_non_duplicate(self):
         print(self.prefix + self.id())
@@ -254,7 +267,8 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
                 writefile.write(content + str(i))
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
-        self.assertTrue("Found [0] duplicated files" in stderr)
+        print(stdout)
+        self.assertTrue("Found [0] duplicated files" in stdout)
 
     def test_100_files_all_duplicate(self):
         print(self.prefix + self.id())
@@ -265,6 +279,7 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
                 writefile.write(content)
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
+        print(stdout)
         self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr)
 
     def test_100_files_random_duplicate(self):
@@ -281,6 +296,7 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
                     writefile.write(content + str(i))
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         print(stderr)
+        print(stdout)
         self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stderr)
 
 
