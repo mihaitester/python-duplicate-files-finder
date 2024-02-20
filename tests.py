@@ -108,6 +108,8 @@ def run_command_and_get_output(command):
 
 class TestDuplicateFinder_SingleThread(unittest.TestCase):
 
+    prefix = "---"
+
     def setUp(self):
         # print("Creating test folder: [{}]".format(TEST_FOLDER))
         os.mkdir(TEST_FOLDER)
@@ -117,32 +119,35 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         shutil.rmtree(TEST_FOLDER)
 
     def test_no_file(self): 
-        print(self.id())
+        print(self.prefix + self.id())
         # os.system(SCRIPT + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
         # print(stdout)
+        print(stderr)
         self.assertTrue("Found [0] duplicated files" in stderr)
         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
     
     def test_single_file(self):
-        print(self.id())
+        print(self.prefix + self.id())
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        print(stderr)
         self.assertTrue("Found [0] duplicated files" in stderr)
 
     def test_2_files_non_duplicate(self):
-        print(self.id())
+        print(self.prefix + self.id())
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
             writefile.write("Something not useful but different")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
+        print(stderr)
         self.assertTrue("Found [0] duplicated files" in stderr)
 
     def test_2_files_duplicated(self):
-        print(self.id())
+        print(self.prefix + self.id())
         content = "Something not useful"
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write(content)
@@ -153,7 +158,7 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         self.assertTrue("Found [1] duplicated files" in stderr)
 
     def test_100_files_non_duplicate(self):
-        print(self.id())
+        print(self.prefix + self.id())
         content = "Something not useful"
         for i in range(0,100):
             with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
@@ -163,7 +168,7 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         self.assertTrue("Found [0] duplicated files" in stderr)
 
     def test_100_files_all_duplicate(self):
-        print(self.id())
+        print(self.prefix + self.id())
         content = "Something not useful"
         duplicates = 100
         for i in range(0,duplicates):
@@ -174,7 +179,7 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr)
 
     def test_100_files_random_duplicate(self):
-        print(self.id())
+        print(self.prefix + self.id())
         content = "Something not useful"
         duplicates = random.randint(0, 100)
         duplicated = 0
@@ -193,6 +198,8 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
 class TestDuplicateFinder_Paralelized(unittest.TestCase):
     # note: unittest uses exceptions to communicate test results, hence if the subthreads fail, that can interfere with results -> help: [ https://stackoverflow.com/questions/40447290/python-unittest-and-multithreading ]
 
+    prefix = "==="
+
     def setUp(self):
         # print("Creating test folder: [{}]".format(TEST_FOLDER))
         os.mkdir(TEST_FOLDER)
@@ -202,7 +209,7 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         shutil.rmtree(TEST_FOLDER)
 
     def test_no_file(self):
-        print(self.id())
+        print(self.prefix + self.id())
         # os.system(SCRIPT_PARALELIZED + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
         # print(stdout)
@@ -211,23 +218,25 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         # print(rc)
 
     def test_single_file(self):
-        print(self.id())
+        print(self.prefix + self.id())
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        print(stderr)
         self.assertTrue("Found [0] duplicated files" in stderr)
 
     def test_2_files_non_duplicate(self):
-        print(self.id())
+        print(self.prefix + self.id())
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
             writefile.write("Something not useful but different")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
+        print(stderr)
         self.assertTrue("Found [0] duplicated files" in stderr)
 
     def test_2_files_duplicated(self):
-        print(self.id())
+        print(self.prefix + self.id())
         content = "Something not useful"
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write(content)
@@ -238,7 +247,7 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         self.assertTrue("Found [1] duplicated files" in stderr)
 
     def test_100_files_non_duplicate(self):
-        print(self.id())
+        print(self.prefix + self.id())
         content = "Something not useful"
         for i in range(0,100):
             with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
@@ -248,7 +257,7 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         self.assertTrue("Found [0] duplicated files" in stderr)
 
     def test_100_files_all_duplicate(self):
-        print(self.id())
+        print(self.prefix + self.id())
         content = "Something not useful"
         duplicates = 100
         for i in range(0,duplicates):
@@ -259,7 +268,7 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr)
 
     def test_100_files_random_duplicate(self):
-        print(self.id())
+        print(self.prefix + self.id())
         content = "Something not useful"
         duplicates = random.randint(0, 100)
         duplicated = 0
