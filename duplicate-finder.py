@@ -328,13 +328,15 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
         if upper_limit > len(METRIC["items"]):
             upper_limit = len(METRIC["items"])
 
+        if lower_limit > upper_limit:
+            # note: this should never happen but the formula is broken
+            # lower_limit = len(METRIC["items"])
+            # note: if the lower limit is outside file range then thread finished processing
+            continue
+
+        # note: this is to remove double processing of files
         if upper_limit >= (i+1) * block_size:
             upper_limit = (i+1) * block_size - 1
-
-        # this should never happen
-        #if upper_limit < lower_limit:
-            # need to skip if such inconsistency occurs
-        #    continue
 
         # if index == THREAD_COUNT - 1:
         #     # note: the last thread has to pick up all remaining files
