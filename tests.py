@@ -339,7 +339,7 @@ def main(verbosity=1):
     if len(sys.argv) > 1:
         verbose = False
         for param in sys.argv:
-            if "verbosity" in param:
+            if "verbose" in param:
                 verbose = True
         _V = verbose
 
