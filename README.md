@@ -283,3 +283,6 @@ FAILED (failures=5)
 
 4. found that if HDD is filled then the script cannot create the proper files required for indexing in the same location 
     - need to provide parameter for optional logs and cache location
+
+5. found bug in parallelized code branch, if there are under `THREAD_COUNT` files to be tested
+    - infinite looping in `thread_process_duplicates`

@@ -368,10 +368,10 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                         try:
                             # todo: figure out elevation for files that are in system folders does not work even if console is admin
                             # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
-                            if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
-                                checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
-                            else:
-                                checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
+                            # if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                                # checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
+                            # else:
+                            checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
                         except:
                             LOGGER.debug("Failed to process checksum for file [{}]".format(file))
                         item = {
@@ -405,10 +405,10 @@ def thread_process_hashes(index, cached_files, cached_paths, start_time=time.tim
                     try:
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
-                        if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
-                            checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
-                        else:
-                            checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
+                        # if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                            # checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
+                        # else:
+                        checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
                     except:
                         LOGGER.debug("Failed to process checksum for file [{}]".format(file))
                     item = {
@@ -827,10 +827,10 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                         try:
                             # todo: figure out elevation for files that are in system folders does not work even if console is admin
                             # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
-                            if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
-                                checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
-                            else:
-                                checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
+                            # if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                                # checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
+                            # else:
+                            checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
                         except:
                             LOGGER.debug("Failed to process checksum for file [{}]".format(file))
                         item = {
@@ -853,10 +853,10 @@ def collect_files_in_path(path="", hidden=False, metric={}, cached_files=[], cac
                     try:
                         # todo: figure out elevation for files that are in system folders does not work even if console is admin
                         # todo: fix [UnicodeEncodeError: 'latin-1' codec can't encode character '\u2063' in position 143: ordinal not in range(256)]
-                        if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
-                            checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
-                        else:
-                            checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
+                        # if size < MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH:
+                            # checksum = hashlib.md5(file.encode(FILE_NAME_ENCODING)).digest().decode(FILE_NAME_ENCODING) 
+                        # else:
+                        checksum = hashlib.md5(open(file, 'rb').read()).digest().decode(FILE_NAME_ENCODING)
                     except:
                         LOGGER.debug("Failed to process checksum for file [{}]".format(file))
                     item = {

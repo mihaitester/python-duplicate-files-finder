@@ -21,6 +21,8 @@ THREAD_STDOUT = b""
 THREAD_STDERR = b""
 THREAD_SLEEP = 2
 
+_V = False
+
 def thread_reader(stdout_pipe, stderr_pipe, finished):
     
     global THREAD_STDOUT, THREAD_STDERR
@@ -122,78 +124,84 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
         shutil.rmtree(TEST_FOLDER)
 
     def test_no_file(self): 
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         # os.system(SCRIPT + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
+        search_message = "Found [0] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
     
     def test_single_file(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [0] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_2_files_non_duplicate(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
             writefile.write("Something not useful but different")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [0] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_2_files_duplicated(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         content = "Something not useful"
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write(content)
         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
             writefile.write(content)
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [1] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [1] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_100_files_non_duplicate(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         content = "Something not useful"
         for i in range(0,100):
             with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
                 writefile.write(content + str(i))
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [0] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_100_files_all_duplicate(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         content = "Something not useful"
         duplicates = 100
         for i in range(0,duplicates):
             with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
                 writefile.write(content)
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [1] duplicated files having [" + str(duplicates - 1) + "] duplicates"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_100_files_random_duplicate(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         content = "Something not useful"
         duplicates = random.randint(0, 100)
         duplicated = 0
@@ -205,10 +213,11 @@ class TestDuplicateFinder_SingleThread(unittest.TestCase):
                 else:
                     writefile.write(content + str(i))
         stdout, stderr, rc = run_command_and_get_output(SCRIPT + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [1] duplicated files having [" + str(duplicates - 1) + "] duplicates"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
 
 class TestDuplicateFinder_Paralelized(unittest.TestCase):
@@ -225,78 +234,84 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
         shutil.rmtree(TEST_FOLDER)
 
     def test_no_file(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         # os.system(SCRIPT_PARALELIZED + " " + TEST_FOLDER) # todo: remove console print pollution from running tests
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
         # print(stderr) # todo: understand why logging is happening on STDERR channel and not STDOUT channel
         # print(rc)
+        search_message = "Found [0] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_single_file(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [0] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_2_files_non_duplicate(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write("Something not useful")
         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
             writefile.write("Something not useful but different")
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [0] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_2_files_duplicated(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         content = "Something not useful"
         with open(os.path.join(TEST_FOLDER, "test1.txt"), "w") as writefile:
             writefile.write(content)
         with open(os.path.join(TEST_FOLDER, "test2.txt"), "w") as writefile:
             writefile.write(content)
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [1] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [1] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_100_files_non_duplicate(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         content = "Something not useful"
         for i in range(0,100):
             with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
                 writefile.write(content + str(i))
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [0] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [0] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_100_files_all_duplicate(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         content = "Something not useful"
         duplicates = 100
         for i in range(0,duplicates):
             with open(os.path.join(TEST_FOLDER, "test"+str(i)+".txt"), "w") as writefile:
                 writefile.write(content)
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found [" + str(duplicates) + "] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [1] duplicated files having ["+ str(duplicates - 1) +"] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
     def test_100_files_random_duplicate(self):
-        print(self.prefix + self.id())
+        print(self.prefix + self.id()) if _V else None
         content = "Something not useful"
         duplicates = random.randint(0, 100)
         duplicated = 0
@@ -308,14 +323,26 @@ class TestDuplicateFinder_Paralelized(unittest.TestCase):
                 else:
                     writefile.write(content + str(i))
         stdout, stderr, rc = run_command_and_get_output(SCRIPT_PARALELIZED + " " + TEST_FOLDER)
-        print(stderr)
-        print(stdout)
+        print(stderr) if _V else None
+        print(stdout) if _V else None
         self.assertTrue("duplicated files" in stderr, "Script invocation failed to print summary message")
-        self.assertTrue("Found ["+str(duplicates)+"] duplicated files" in stderr, "Test failed - " + str(stderr.split("\n")[-6:-5]))
+        search_message = "Found [1] duplicated files having ["+ str(duplicates - 1) +"] duplicated files"
+        self.assertTrue(search_message in stderr, "\nTest failed - Expected [" + search_message + "]\n but got - [" + str(stderr.split("\n")[-6:-5]) + "]")
 
 
 def main(verbosity=1):
     # note: really weird that verbosity cannot be passed through, but unittest will automatically process --verbose parameter from sys.argv
+    # unittest.main(verbosity=verbosity)
+
+    # print("Broken code") if True else None # note: why does the following line break? [global _V] without being able to set the global parameter, cannot control prints
+    global _V # note: why does this fail - assuming unittest is breaking global variables = SyntaxError: name '_V' is assigned to before global declaration
+    if len(sys.argv) > 1:
+        verbose = False
+        for param in sys.argv:
+            if "verbosity" in param:
+                verbose = True
+        _V = verbose
+
     unittest.main()
 
 if __name__ == "__main__":
@@ -327,5 +354,9 @@ if __name__ == "__main__":
     #     main(int(sys.argv[1])) 
     # else:
     #     main()
+
+    # NOTE: why I cannot use the `global` statement outside of `def` blocks
+    # global _V # note: why does this fail - assuming unittest is breaking global variables = SyntaxError: name '_V' is assigned to before global declaration
+
     main()
     # todo: maybe add a logger for tests as well
