@@ -2,5 +2,6 @@
 *.json
 *.cache
 *.log
+logs
 scrap_test_folder
 __pycache__
