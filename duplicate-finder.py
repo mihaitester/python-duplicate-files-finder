@@ -571,13 +571,27 @@ def dump_duplicates(items=[], parallelize=True):
 
 
 @timeit
-def link_back_duplicates(items=[]):
+def link_back_duplicates(items=[], include="", exclude=""):
     """
     help: [ https://stackoverflow.com/questions/1447575/symlinks-on-windows ]
     help: [ https://pypi.org/project/pywin32/ ]
     :param items: [[original_file, duplicate1, duplicate2, ...], ...]
     :return:
     """
+    def __link_back_duplicates_code_block(file, link):
+        try:
+            LOGGER.info("Linking [{}] to file [{}]".format(link, file))
+            # note: this creates a hard link, we need soft links, because hard links behave like the file themelves during the size and hash comparison, need to exclude them
+            # os.link(file, link)
+            os.symlink(file, link)
+            LOGGER.debug("Linked [{}] to file [{}]".format(link, file))
+            # subprocess.call(['mklink', '"{}.lnk"'.format(series[i]["path"]), '"{}"'.format(series[0]["path"])], shell=True) # note: does not have sufficient priviledges
+        except Exception as ex:
+            try:
+                LOGGER.error("Failed linking [{}] to file [{}] with exception [{}]".format(link, file, ex.message))
+            except:
+                LOGGER.error("Failed linking [{}] to file [{}] with exception [{}]".format(link, file, str(ex)))
+    
     for series in items:
         for i in range(1, len(series)):
             file = '{}'.format(series[0]["path"])
@@ -588,41 +602,56 @@ def link_back_duplicates(items=[]):
             #    j += 1
             #    link = '{}_{}'.format(series[i]["path"], j)
             
-            if not os.path.exists(link):
-                try:
-                    LOGGER.info("Linking [{}] to file [{}]".format(link, file))
-                    os.link(file, link)
-                    LOGGER.debug("Linked [{}] to file [{}]".format(link, file))
-                    # subprocess.call(['mklink', '"{}.lnk"'.format(series[i]["path"]), '"{}"'.format(series[0]["path"])], shell=True) # note: does not have sufficient priviledges
-                except Exception as ex:
-                    try:
-                        LOGGER.error("Failed linking [{}] to file [{}] with exception [{}]".format(link, file, ex.message))
-                    except:
-                        LOGGER.error("Failed linking [{}] to file [{}] with exception [{}]".format(link, file, str(ex)))
-
+            # $$$ todo: or need to have include filter for the files being scanned
+            if include != "" or exclude != "":
+                for inc in include.split('.'):
+                    if inc in file:
+                        if not os.path.exists(link):
+                            if exclude != "":
+                                for exc in exclude.split('.'):
+                                    if exc not in file:
+                                        __link_back_duplicates_code_block(file, link)
+                            else:
+                                __link_back_duplicates_code_block(file, link)
+            else:
+                if not os.path.exists(link):
+                    __link_back_duplicates_code_block(file, link)
 
 @timeit
-def delete_duplicates(items=[]):
+def delete_duplicates(items=[], include="", exclude=""):
     """
     :param items: [[original_file, duplicate1, duplicate2, ...], ...]
     :return:
     """
+    def __delete_duplicate_code_block(file):
+        try:
+            LOGGER.info("Deleting [{}]".format(file))
+            os.remove(file)
+            LOGGER.debug("Deleted [{}]".format(file))
+        except Exception as ex:
+            try:
+                LOGGER.error("Failed to delete [{}] with exception [{}]".format(file, ex.message))
+            except:
+                LOGGER.error("Failed to delete [{}] with exception [{}]".format(file, str(ex)))
+    
     for series in items:
         # note: first file does not get removed
         for i in range(1, len(series)):
             file = series[i]["path"]
             # todo: need to exclude file from being deleted, either if they are under a certain size or they have a particular extension
+            
             # $$$ todo: or need to have include filter for the files being scanned
-
-            try:
-                LOGGER.info("Deleting [{}]".format(file))
-                os.remove(file)
-                LOGGER.debug("Deleted [{}]".format(file))
-            except Exception as ex:
-                try:
-                    LOGGER.error("Failed to delete [{}] with exception [{}]".format(file, ex.message))
-                except:
-                    LOGGER.error("Failed to delete [{}] with exception [{}]".format(file, str(ex)))
+            if include != "" or exclude != "":
+                for inc in include.split('.'):
+                    if inc in file:
+                        if exclude != "":
+                            for exc in exclude.split('.'):
+                                if exc not in file:
+                                    __delete_duplicate_code_block(file)
+                        else:
+                            __delete_duplicate_code_block(file)
+            else:
+                __delete_duplicate_code_block(file)
 
 
 @timeit
@@ -1058,6 +1087,13 @@ def menu():
 
     parser.add_argument('-e', '--erase', action='store_true', required=False,
                         help='flag indicating that duplicate files will be erased')
+    
+    parser.add_argument('-i', '--include', required=False, default="",
+                        help='parameter containing file extension to be included in duplicate removal and backlinking, will ignore other files. example: .mp4.mp3')
+
+    parser.add_argument('-x', '--exclude', required=False, default=".lnk",
+                        help='parameter containing file extension to be excluded in duplicate removal and backlinking, will ignore other files. example: .lnk')
+
     parser.add_argument('-n', '--hidden', action='store_true', required=False,
                         help='flag indicating that python should search for hidden files')
     parser.add_argument('paths', metavar='paths', nargs='+',
@@ -1119,9 +1155,9 @@ def main():
     if args.json:
         dump_duplicates(duplicates, args.parallelize)
     if args.links:
-        link_back_duplicates(duplicates)
+        link_back_duplicates(duplicates, args.include, args.exclude)
     if args.erase:
-        delete_duplicates(duplicates)
+        delete_duplicates(duplicates, args.include, args.exclude)
 
     # todo: show progress bar of script based on OS preliminary data,
     #  because for large folders it can take a while and blank screen does not indicate enough feedback

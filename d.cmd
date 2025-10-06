@@ -1,1 +1,1 @@
-duplicate-finder.cmd c:\users\%USERNAME%\Downloads %*
+duplicate-finder.cmd c:\users\%USERNAME%\Downloads -i .mp4 -x .lnk %*
