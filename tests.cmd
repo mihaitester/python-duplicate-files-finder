@@ -8,6 +8,10 @@ set "command=rmdir /q /s scrap_test_folder"
 echo ^>^>^> %command%
 %command%
 
+rem set "command=rmdir /q /s logs"
+rem echo ^>^>^> %command%
+rem %command%
+
 set "command=python tests.py %*"
 echo ^>^>^> %command%
 %command%
