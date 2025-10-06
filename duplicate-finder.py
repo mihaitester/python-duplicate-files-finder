@@ -16,7 +16,8 @@ import sys
 import threading
 import multiprocessing
 
-
+SCRIPT_BASE_FOLDER = os.path.abspath(os.path.dirname(__file__))
+LOG_FOLDER = os.path.join(SCRIPT_BASE_FOLDER, "logs")
 
 MIN_FILE_SIZE_FOR_HASH_CONTENT_OR_PATH = 256
 DATETIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
@@ -546,11 +547,20 @@ def dump_duplicates(items=[], parallelize=True):
     :return:
     """
     # note: this is used for debug purposes, comparing which files were found as duplicate between serialized and threaded script runs
-    duplicates_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
+    if not os.path.exists(LOG_FOLDER):
+        os.mkdir(LOG_FOLDER)
+    
+    duplicates_file = os.path.join(
+        LOG_FOLDER,
+        "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
                                      ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".json")
+    )
     if parallelize:
-        duplicates_file = "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
+        duplicates_file = os.path.join(
+            LOG_FOLDER,
+            "{}_{}".format(datetime.datetime.now().strftime(DATETIME_FORMAT),
                                          ('.').join(os.path.basename(__file__).split('.')[:-1]) + "_p.json")
+        )
     try:
         LOGGER.info("Dumping duplicates file [{}]".format(duplicates_file))
         with open(duplicates_file, "w", encoding=FILE_NAME_ENCODING) as dumpfile:
@@ -570,13 +580,25 @@ def link_back_duplicates(items=[]):
     """
     for series in items:
         for i in range(1, len(series)):
-            try:
-                LOGGER.info("Linking [{}] to file [{}]", '{}.lnk'.format(series[i]["path"], series[0]["path"]))
-                os.link('{}'.format(series[0]["path"]), '{}.lnk'.format(series[i]["path"]))
-                LOGGER.debug("Linked [{}] to file [{}]", '{}.lnk'.format(series[i]["path"], series[0]["path"]))
-                # subprocess.call(['mklink', '"{}.lnk"'.format(series[i]["path"]), '"{}"'.format(series[0]["path"])], shell=True) # note: does not have sufficient priviledges
-            except Exception as ex:
-                LOGGER.error("Failed linking [{}] to file [{}] with exception [{}]", '{}.lnk'.format(series[i]["path"], series[0]["path"], ex.message))
+            file = '{}'.format(series[0]["path"])
+            link = '{}.lnk'.format(series[i]["path"])
+            # todo: need to figure out how to make multiple back links possible without duplicating them
+            #j = 0
+            #while os.path.exists(link):
+            #    j += 1
+            #    link = '{}_{}'.format(series[i]["path"], j)
+            
+            if not os.path.exists(link):
+                try:
+                    LOGGER.info("Linking [{}] to file [{}]".format(link, file))
+                    os.link(file, link)
+                    LOGGER.debug("Linked [{}] to file [{}]".format(link, file))
+                    # subprocess.call(['mklink', '"{}.lnk"'.format(series[i]["path"]), '"{}"'.format(series[0]["path"])], shell=True) # note: does not have sufficient priviledges
+                except Exception as ex:
+                    try:
+                        LOGGER.error("Failed linking [{}] to file [{}] with exception [{}]".format(link, file, ex.message))
+                    except:
+                        LOGGER.error("Failed linking [{}] to file [{}] with exception [{}]".format(link, file, str(ex)))
 
 
 @timeit
@@ -586,13 +608,21 @@ def delete_duplicates(items=[]):
     :return:
     """
     for series in items:
+        # note: first file does not get removed
         for i in range(1, len(series)):
+            file = series[i]["path"]
+            # todo: need to exclude file from being deleted, either if they are under a certain size or they have a particular extension
+            # $$$ todo: or need to have include filter for the files being scanned
+
             try:
-                LOGGER.info("Deleting [{}]".format(series[i]["path"]))
-                os.remove(series[i]["path"])
-                LOGGER.debug("Deleted [{}]".format(series[i]["path"]))
+                LOGGER.info("Deleting [{}]".format(file))
+                os.remove(file)
+                LOGGER.debug("Deleted [{}]".format(file))
             except Exception as ex:
-                LOGGER.error("Failed to delete [{}] with exception [{}]".format(series[i]["path"], ex.message))
+                try:
+                    LOGGER.error("Failed to delete [{}] with exception [{}]".format(file, ex.message))
+                except:
+                    LOGGER.error("Failed to delete [{}] with exception [{}]".format(file, str(ex)))
 
 
 @timeit
@@ -1051,9 +1081,15 @@ def main():
     consolehandler.setFormatter(LOG_FORMATTER)
     consolehandler.setLevel(args.debug) # configure verbosity to screen
 
-    filehandler = logging.FileHandler(filename="{}_{}".format(
-            datetime.datetime.now().strftime(DATETIME_FORMAT),
-            ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".log"), encoding=LOG_ENCODING) # note: encoding is important because of difference UTF-8 and filenames, and avoids having to update each print with encoding
+    if not os.path.exists(LOG_FOLDER):
+        os.mkdir(LOG_FOLDER)
+
+    filehandler = logging.FileHandler(filename=os.path.join(
+            LOG_FOLDER,
+            "{}_{}".format(
+                datetime.datetime.now().strftime(DATETIME_FORMAT),
+                ('.').join(os.path.basename(__file__).split('.')[:-1]) + ".log")
+            ), encoding=LOG_ENCODING) # note: encoding is important because of difference UTF-8 and filenames, and avoids having to update each print with encoding
     filehandler.setFormatter(LOG_FORMATTER)
     filehandler.setLevel(logging.DEBUG) # use DEBUG to get all logs to file
 
@@ -1068,6 +1104,7 @@ def main():
 
     metrics = collect_all_metrics(args.paths, args.hidden)
     # todo: implement progressive threading, meaning interrupt single thread and spawn more threads over the remaining data as time progresses
+    # todo: if -k argument, then need to continue scanning, but if providing explicit -f file, need to operate with that alone
     files = collect_all_files(args.paths, args.hidden, metrics, cached_files, cached_paths, args.parallelize, args)
 
     # if args.cache:
