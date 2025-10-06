@@ -1,0 +1,1 @@
+duplicate-finder.cmd c:\users\%USERNAME%\Downloads %*
