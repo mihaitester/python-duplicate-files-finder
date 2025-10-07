@@ -1091,7 +1091,7 @@ def menu():
     parser.add_argument('-i', '--include', required=False, default="",
                         help='parameter containing file extension to be included in duplicate removal and backlinking, will ignore other files. example: .mp4.mp3')
 
-    parser.add_argument('-x', '--exclude', required=False, default=".lnk",
+    parser.add_argument('-x', '--exclude', required=False, default=".lnk.cmd",
                         help='parameter containing file extension to be excluded in duplicate removal and backlinking, will ignore other files. example: .lnk')
 
     parser.add_argument('-n', '--hidden', action='store_true', required=False,
